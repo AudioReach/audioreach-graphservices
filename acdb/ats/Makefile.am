@@ -97,7 +97,7 @@ libar_ats_la_CFLAGS += -DATS_DATA_LOGGING
 libar_ats_la_CPPFLAGS += -DATS_DATA_LOGGING
 endif
 
-libar_ats_la_LDFLAGS = -shared -avoid-version  @LT_VERSION_NUMBER@
+libar_ats_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
 
 AM_CPPFLAGS += -DSOCK_PATH='"/usr/bin/gateway/ats_sockets"' \
         -DSOCK_PATH_SERVER='"/usr/bin/gateway/ats_sockets/unix_sock.server"' \
