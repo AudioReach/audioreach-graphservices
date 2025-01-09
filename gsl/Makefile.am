@@ -33,7 +33,8 @@ gsl_sources = ./inc/gsl_common.h \
               ./inc/gsl_spf_timeout.h \
               ./inc/gsl_global_persist_cal.h \
               ./dls_client_api/gsl_dls_client_intf.h \
-              ./inc/gsl_dls_client.h
+              ./inc/gsl_dls_client.h \
+              ./inc/gsl_cshm_mgr.h
 
 gsl_c_sources = ./src/gsl_graph.c \
                 ./src/gsl_main.c \
@@ -51,7 +52,8 @@ gsl_c_sources = ./src/gsl_graph.c \
                 ./src/gsl_hw_rsc_mgr.c \
                 ./src/gsl_msg_builder.c \
                 ./src/gsl_global_persist_cal.c \
-                ./src/gsl_dls_client.c
+                ./src/gsl_dls_client.c \
+                ./src/gsl_cshm_mgr.c
 
 lib_includedir = $(includedir)
 lib_include_HEADERS = $(gsl_sources)
