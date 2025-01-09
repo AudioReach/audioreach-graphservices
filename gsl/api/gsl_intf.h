@@ -675,6 +675,19 @@ void gsl_get_version(uint32_t *major, uint32_t *minor);
 int32_t gsl_init(struct gsl_init_data *init_data);
 
 /**
+ * \brief Initialize GSL cshm, must be called before any other cshm calls
+ *
+ * \param[in] num_client: number of clients to be intialized with.
+ * If 0, then default value of CSHM_DEFAULT_INIT_CLIENT_NUM will be used.
+ */
+int32_t gsl_cshm_init(uint32_t num_client);
+
+/**
+ * \brief De-Initialize GSL cshm, must be called after gsl_deinit()
+ */
+int32_t gsl_cshm_deinit(void);
+
+/**
  * De-initialize GSL, no GSL APIs should be called after this
  */
 void gsl_deinit(void);
@@ -1274,6 +1287,94 @@ int32_t gsl_add_database(struct gsl_acdb_data_files *acdb_data_files,
  * \return AR_EOK in success, error code otherwise
  */
 int32_t gsl_remove_database(gsl_acdb_handle_t acdb_handle);
+
+typedef uint32_t gsl_mem_id_t;
+
+typedef enum gsl_cshm_cache_type {
+    /** 0  cached.*/
+    GSL_CSHM_CACHED = 1,
+    /** 1  uncached.*/
+    GSL_CSHM_UNCACHED,
+} gsl_cshm_cache_type_t;
+
+typedef enum gsl_subsystem {
+    /** Invalid sub system.*/
+    GSL_SS_INVALID = 0,
+	/** Used for MODEM DSP sub system.*/
+    GSL_SS_MODEM_DSP = 1,
+	/** Used for APPS sub system.*/
+    GSL_SS_APPS = 2,
+	/** Used for SENSOR DSP sub system.*/
+    GSL_SS_SENSOR_DSP = 3,
+	/** Used for COMPUTE DSP sub system.*/
+    GSL_SS_COMPUTE_DSP = 4,
+	/** Used for Companion chip DSP (CC_DSP) sub system.*/
+    GSL_SS_CC_DSP = 5,
+	/** Used for ADSP sub system.*/
+    GSL_SS_ADSP = 6,
+} gsl_subsystem_t;
+
+typedef struct gsl_cshm_info {
+	/** Cached or uncached memory type.*/
+    gsl_cshm_cache_type_t type;
+    /** Allows rouing shared memory access across multiple DSPs.*/
+    gsl_subsystem_t subsystem_mask;
+	/** Flags for shared memory allocation.*/
+    int32_t flag;
+	/** File descriptor for mapped memory region.*/
+    uint64_t fd;
+	/** Unique GSL memory identifier.*/
+    gsl_mem_id_t mem_id;
+} gsl_cshm_info_t;
+
+/**
+ * \brief Allocates shared memory for external clients. Send
+ * APM_CMD_GLOBAL_SHARED_MEM_MAP_REGIONS  commands to SPF to map allocated
+ * memory.
+ *
+ * \param[in] size: number of bytes to be allocated
+ * \param[in/out] info: properties of shared memory to be allocated.
+ *                      fd and mem_id of allocated memory
+ * \return AR_EOK in success, error code otherwise
+ */
+int32_t gsl_cshm_alloc(uint32_t size, gsl_cshm_info_t *info);
+
+/**
+ * \brief Deallocates shared memory for external clients. Send
+ * APM_CMD_GLOBAL_SHARED_MEM_UNMAP_REGIONS commands to SPF to unmap
+ * memory to be deallocated.
+ *
+ * \param[in] mem_id: identifier to shared memory to be deallocated
+ * \return AR_EOK in success, error code otherwise
+ */
+int32_t gsl_cshm_dealloc(gsl_mem_id_t mem_id);
+
+/**
+ * \brief Send notification to module running in SPF w.r.t particular
+ * operation on shared memory block. Operation is opaque to gsl.
+ *AR_SPF_MSG_GLOBAL_SH_MEM commands to SPF to forwards it to custom module.
+ *
+ * \param[in] mem_id: identifier to shared memory to be deallocated
+ * \param[in] offset: Offset (in bytes) from where the chunk of memory starts.
+ *                    This is relative to the beginning of the total shared memory
+ *                    allocated
+ * \param[in] length: Size of the chunk of memory.
+ * \param[in] miid: Module Instance ID of the module to which this call is intended for.
+ *                  In case of invalid/inactive miid, error is returned.
+ * \param[in] prop_flag: Flags to provide additional information for this call
+ *                      Bit 0 – Release memory
+                        Bit used to convey if client wants the module to release/stop
+						using a chunk of previously informed memory.
+                            0 – Default. Not a release message.
+                            1 – Here, if length is zero, module is asked to release
+							entire memory mapped to it with mem_id.
+							If length is non-zero, the module is asked to release this
+							chunck only.
+
+ * \return AR_EOK in success, error code otherwise
+ */
+int32_t gsl_cshm_msg(gsl_mem_id_t  mem_id, uint32_t  offset, uint32_t  length, uint32_t  miid,
+                    uint32_t prop_flag);
 
 #ifdef __cplusplus
 }  /* extern "C" */
