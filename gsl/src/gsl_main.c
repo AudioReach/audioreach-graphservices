@@ -36,6 +36,7 @@
 #include "apm_api.h"
 #include "apm_memmap_api.h"
 #include "apm_graph_properties.h"
+#include "gsl_cshm_mgr.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -511,7 +512,7 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 	 */
 	if (master_proc == 0)
 		return;
-
+	gsl_cshm_handle_ssr(state, spf_ss_mask);
 	if (state == GSL_SPF_SS_STATE_DN) {
 		/*
 		 * unblock any memory map operations in progress, for now assume master
