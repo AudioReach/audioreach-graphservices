@@ -27,6 +27,7 @@ extern "C"
 
 /** @ingroup ar_spf_mod_media_fmt_ids
     Enumeration for infinity. */
+#undef INFINITE
 #define INFINITE                         -1
 
 /** @ingroup ar_spf_mod_media_fmt_ids
@@ -83,25 +84,111 @@ enum pcm_channel_map
    PCM_CHANNEL_LSD = 33,               /**< Left side direct channel. */
    PCM_CHANNEL_RSD = 34,               /**< Right side direct channel. */
 
-   /* Channel map 48 to 63 are reserved for custom channel maps */
-   PCM_CUSTOM_CHANNEL_MAP_1  = 48,  /**< Custom channel map 48 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_2  = 49,  /**< Custom channel map 49 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_3  = 50,  /**< Custom channel map 50 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_4  = 51,  /**< Custom channel map 51 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_5  = 52,  /**< Custom channel map 52 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_6  = 53,  /**< Custom channel map 53 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_7  = 54,  /**< Custom channel map 54 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_8  = 55,  /**< Custom channel map 55 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_9  = 56,  /**< Custom channel map 56 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_10 = 57,  /**< Custom channel map 57 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_11 = 58,  /**< Custom channel map 58 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_12 = 59,  /**< Custom channel map 59 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_13 = 60,  /**< Custom channel map 60 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_14 = 61,  /**< Custom channel map 61 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_15 = 62,  /**< Custom channel map 62 is reserved. */
-   PCM_CUSTOM_CHANNEL_MAP_16 = 63,  /**< Custom channel map 63 is reserved. */
+  PCM_CUSTOM_CHANNEL_MAP_17 = 35, /**< Custom channel map 35. */
+  PCM_CUSTOM_CHANNEL_MAP_18 = 36, /**< Custom channel map 36. */
+  PCM_CUSTOM_CHANNEL_MAP_19 = 37, /**< Custom channel map 37. */
+  PCM_CUSTOM_CHANNEL_MAP_20 = 38, /**< Custom channel map 38. */
+  PCM_CUSTOM_CHANNEL_MAP_21 = 39, /**< Custom channel map 39. */
+  PCM_CUSTOM_CHANNEL_MAP_22 = 40, /**< Custom channel map 40. */
+  PCM_CUSTOM_CHANNEL_MAP_23 = 41, /**< Custom channel map 41. */
+  PCM_CUSTOM_CHANNEL_MAP_24 = 42, /**< Custom channel map 42. */
+  PCM_CUSTOM_CHANNEL_MAP_25 = 43, /**< Custom channel map 43. */
+  PCM_CUSTOM_CHANNEL_MAP_26 = 44, /**< Custom channel map 44. */
+  PCM_CUSTOM_CHANNEL_MAP_27 = 45, /**< Custom channel map 45. */
+  PCM_CUSTOM_CHANNEL_MAP_28 = 46, /**< Custom channel map 46. */
+  PCM_CUSTOM_CHANNEL_MAP_29 = 47, /**< Custom channel map 47. */
 
-   PCM_MAX_CHANNEL_MAP = 63         /**< Last item in the list. */
+  PCM_CUSTOM_CHANNEL_MAP_1 = 48,  /**< Custom channel map 48. */
+  PCM_CUSTOM_CHANNEL_MAP_2 = 49,  /**< Custom channel map 49. */
+  PCM_CUSTOM_CHANNEL_MAP_3 = 50,  /**< Custom channel map 50. */
+  PCM_CUSTOM_CHANNEL_MAP_4 = 51,  /**< Custom channel map 51. */
+  PCM_CUSTOM_CHANNEL_MAP_5 = 52,  /**< Custom channel map 52. */
+  PCM_CUSTOM_CHANNEL_MAP_6 = 53,  /**< Custom channel map 53. */
+  PCM_CUSTOM_CHANNEL_MAP_7 = 54,  /**< Custom channel map 54. */
+  PCM_CUSTOM_CHANNEL_MAP_8 = 55,  /**< Custom channel map 55. */
+  PCM_CUSTOM_CHANNEL_MAP_9 = 56,  /**< Custom channel map 56. */
+  PCM_CUSTOM_CHANNEL_MAP_10 = 57, /**< Custom channel map 57. */
+  PCM_CUSTOM_CHANNEL_MAP_11 = 58, /**< Custom channel map 58. */
+  PCM_CUSTOM_CHANNEL_MAP_12 = 59, /**< Custom channel map 59. */
+  PCM_CUSTOM_CHANNEL_MAP_13 = 60, /**< Custom channel map 60. */
+  PCM_CUSTOM_CHANNEL_MAP_14 = 61, /**< Custom channel map 61. */
+  PCM_CUSTOM_CHANNEL_MAP_15 = 62, /**< Custom channel map 62. */
+  PCM_CUSTOM_CHANNEL_MAP_16 = 63, /**< Custom channel map 63. */
+
+  PCM_CUSTOM_CHANNEL_MAP_30 = 64,  /**< Custom channel map 64. */
+  PCM_CUSTOM_CHANNEL_MAP_31 = 65,  /**< Custom channel map 65. */
+  PCM_CUSTOM_CHANNEL_MAP_32 = 66,  /**< Custom channel map 66. */
+  PCM_CUSTOM_CHANNEL_MAP_33 = 67,  /**< Custom channel map 67. */
+  PCM_CUSTOM_CHANNEL_MAP_34 = 68,  /**< Custom channel map 68. */
+  PCM_CUSTOM_CHANNEL_MAP_35 = 69,  /**< Custom channel map 69. */
+
+  PCM_CUSTOM_CHANNEL_MAP_36 = 70,  /**< Custom channel map 70. */
+  PCM_CUSTOM_CHANNEL_MAP_37 = 71,  /**< Custom channel map 71. */
+  PCM_CUSTOM_CHANNEL_MAP_38 = 72,  /**< Custom channel map 72. */
+  PCM_CUSTOM_CHANNEL_MAP_39 = 73,  /**< Custom channel map 73. */
+  PCM_CUSTOM_CHANNEL_MAP_40 = 74,  /**< Custom channel map 74. */
+  PCM_CUSTOM_CHANNEL_MAP_41 = 75,  /**< Custom channel map 75. */
+  PCM_CUSTOM_CHANNEL_MAP_42 = 76,  /**< Custom channel map 76. */
+  PCM_CUSTOM_CHANNEL_MAP_43 = 77,  /**< Custom channel map 77. */
+  PCM_CUSTOM_CHANNEL_MAP_44 = 78,  /**< Custom channel map 78. */
+  PCM_CUSTOM_CHANNEL_MAP_45 = 79,  /**< Custom channel map 79. */
+
+  PCM_CUSTOM_CHANNEL_MAP_46 = 80,  /**< Custom channel map 80. */
+  PCM_CUSTOM_CHANNEL_MAP_47 = 81,  /**< Custom channel map 81. */
+  PCM_CUSTOM_CHANNEL_MAP_48 = 82,  /**< Custom channel map 82. */
+  PCM_CUSTOM_CHANNEL_MAP_49 = 83,  /**< Custom channel map 83. */
+  PCM_CUSTOM_CHANNEL_MAP_50 = 84,  /**< Custom channel map 84. */
+  PCM_CUSTOM_CHANNEL_MAP_51 = 85,  /**< Custom channel map 85. */
+  PCM_CUSTOM_CHANNEL_MAP_52 = 86,  /**< Custom channel map 86. */
+  PCM_CUSTOM_CHANNEL_MAP_53 = 87,  /**< Custom channel map 87. */
+  PCM_CUSTOM_CHANNEL_MAP_54 = 88,  /**< Custom channel map 88. */
+  PCM_CUSTOM_CHANNEL_MAP_55 = 89,  /**< Custom channel map 89. */
+
+  PCM_CUSTOM_CHANNEL_MAP_56 = 90,  /**< Custom channel map 90. */
+  PCM_CUSTOM_CHANNEL_MAP_57 = 91,  /**< Custom channel map 91. */
+  PCM_CUSTOM_CHANNEL_MAP_58 = 92,  /**< Custom channel map 92. */
+  PCM_CUSTOM_CHANNEL_MAP_59 = 93,  /**< Custom channel map 93. */
+  PCM_CUSTOM_CHANNEL_MAP_60 = 94,  /**< Custom channel map 94. */
+  PCM_CUSTOM_CHANNEL_MAP_61 = 95,  /**< Custom channel map 95. */
+  PCM_CUSTOM_CHANNEL_MAP_62 = 96,  /**< Custom channel map 96. */
+  PCM_CUSTOM_CHANNEL_MAP_63 = 97,  /**< Custom channel map 97. */
+  PCM_CUSTOM_CHANNEL_MAP_64 = 98,  /**< Custom channel map 98. */
+  PCM_CUSTOM_CHANNEL_MAP_65 = 99,  /**< Custom channel map 99. */
+
+  PCM_CUSTOM_CHANNEL_MAP_66 = 100,  /**< Custom channel map 100. */
+  PCM_CUSTOM_CHANNEL_MAP_67 = 101,  /**< Custom channel map 101. */
+  PCM_CUSTOM_CHANNEL_MAP_68 = 102,  /**< Custom channel map 102. */
+  PCM_CUSTOM_CHANNEL_MAP_69 = 103,  /**< Custom channel map 103. */
+  PCM_CUSTOM_CHANNEL_MAP_70 = 104,  /**< Custom channel map 104. */
+  PCM_CUSTOM_CHANNEL_MAP_71 = 105,  /**< Custom channel map 105. */
+  PCM_CUSTOM_CHANNEL_MAP_72 = 106,  /**< Custom channel map 106. */
+  PCM_CUSTOM_CHANNEL_MAP_73 = 107,  /**< Custom channel map 107. */
+  PCM_CUSTOM_CHANNEL_MAP_74 = 108,  /**< Custom channel map 108. */
+  PCM_CUSTOM_CHANNEL_MAP_75 = 109,  /**< Custom channel map 109. */
+
+  PCM_CUSTOM_CHANNEL_MAP_76 = 110,  /**< Custom channel map 110. */
+  PCM_CUSTOM_CHANNEL_MAP_77 = 111,  /**< Custom channel map 111. */
+  PCM_CUSTOM_CHANNEL_MAP_78 = 112,  /**< Custom channel map 112. */
+  PCM_CUSTOM_CHANNEL_MAP_79 = 113,  /**< Custom channel map 113. */
+  PCM_CUSTOM_CHANNEL_MAP_80 = 114,  /**< Custom channel map 114. */
+  PCM_CUSTOM_CHANNEL_MAP_81 = 115,  /**< Custom channel map 115. */
+  PCM_CUSTOM_CHANNEL_MAP_82 = 116,  /**< Custom channel map 116. */
+  PCM_CUSTOM_CHANNEL_MAP_83 = 117,  /**< Custom channel map 117. */
+  PCM_CUSTOM_CHANNEL_MAP_84 = 118,  /**< Custom channel map 118. */
+  PCM_CUSTOM_CHANNEL_MAP_85 = 119,  /**< Custom channel map 119. */
+
+  PCM_CUSTOM_CHANNEL_MAP_86 = 120,  /**< Custom channel map 120. */
+  PCM_CUSTOM_CHANNEL_MAP_87 = 121,  /**< Custom channel map 121. */
+  PCM_CUSTOM_CHANNEL_MAP_88 = 122,  /**< Custom channel map 122. */
+  PCM_CUSTOM_CHANNEL_MAP_89 = 123,  /**< Custom channel map 123. */
+  PCM_CUSTOM_CHANNEL_MAP_90 = 124,  /**< Custom channel map 124. */
+  PCM_CUSTOM_CHANNEL_MAP_91 = 125,  /**< Custom channel map 125. */
+  PCM_CUSTOM_CHANNEL_MAP_92 = 126,  /**< Custom channel map 126. */
+  PCM_CUSTOM_CHANNEL_MAP_93 = 127,  /**< Custom channel map 127. */
+  PCM_CUSTOM_CHANNEL_MAP_94 = 128,  /**< Custom channel map 127. */
+  PCM_MAX_CHANNEL_MAP = 63, /**< (Deprecated)Last item in the list.*/
+  PCM_MAX_CHANNEL_MAP_V2 = 128 /**< Last item in the list.*/
+
 };
 
 
@@ -119,6 +206,9 @@ enum pcm_channel_map
     Thirty-two bits per sample (= sample word size). */
 #define BITS_PER_SAMPLE_32        32
 
+/** @ingroup ar_spf_mod_media_fmt_ids
+    Sixty-four bits per sample (= sample word size). */
+#define BITS_PER_SAMPLE_64        64
 
 /********************************************** Bytes Per Sample Values ************************************************/
 
@@ -149,6 +239,9 @@ enum pcm_channel_map
     Sample has a bit width of 32 (the actual width of the sample in a word). */
 #define BIT_WIDTH_32              32
 
+/** @ingroup ar_spf_mod_media_fmt_ids
+    Sample has a bit width of 64 (the actual width of the sample in a word). */
+#define BIT_WIDTH_64              64
 
 /********************************************** Alignment Values ******************************************************/
 
@@ -337,6 +430,13 @@ enum pcm_channel_map
     and bit width. */
 #define DATA_FORMAT_IEC60958_PACKETIZED_NON_LINEAR 8
 
+/** @ingroup ar_spf_mod_media_fmt_ids
+ * * Data format is of Floating Point type */
+#define DATA_FORMAT_FLOATING_POINT      9
+
+/** @ingroup ar_spf_mod_media_fmt_ids
+ * Data format is deinterleaved raw compressed unlike other formats it has no channels or buffers */
+#define DATA_FORMAT_DEINTERLEAVED_RAW_COMPRESSED 10
 
 /********************************************** Configuration Modes****************************************************/
 
@@ -535,16 +635,18 @@ struct payload_media_fmt_pcm_t
 
         @valuesbul
         - #INVALID_VALUE (Default)
-        - #BIT_WIDTH_16
-        - #BIT_WIDTH_24
-        - #BIT_WIDTH_32 @tablebulletend */
-
+        - #BIT_WIDTH_16 Valid only for fixed point data format
+        - #BIT_WIDTH_24 Valid only for fixed point data format
+        - #BIT_WIDTH_32 Valid for fixed point and floating point data format
+        - #BIT_WIDTH_64 Valid only for floating point data format
+        @tablebulletend */
    /*#< @h2xmle_description {Bit width of each sample.}
         @h2xmle_default     {0}
         @h2xmle_rangeList   {"INVALID_VALUE"=0;
                              "BIT_WIDTH_16"=16;
                              "BIT_WIDTH_24"=24;
-                             "BIT_WIDTH_32"=32}
+                             "BIT_WIDTH_32"=32;
+                             "BIT_WIDTH_64"=64}
         @h2xmle_policy      {Basic} */
 
    uint8_t alignment;
@@ -592,6 +694,7 @@ struct payload_media_fmt_pcm_t
         - #BITS_PER_SAMPLE_16
         - #BITS_PER_SAMPLE_24
         - #BITS_PER_SAMPLE_32
+        - #BITS_PER_SAMPLE_64
 
         @tblsubhdbul{For BITS\_PER\_SAMPLE\_32}
         - If bit_width = 24 and alignment = LSB aligned, the 24-bit samples are
@@ -601,6 +704,7 @@ struct payload_media_fmt_pcm_t
           placed in the upper 24 bits of the 32-bit word. The lower bits might
           be set to 0.
         - If bit width = 32, 32-bit samples are placed in the 32-bit words.
+        - BITS_PER_SAMPLE_64- Valid only for floating point data format.
         @tablebulletend */
 
    /*#< @h2xmle_description {Number of bits required to store one sample.}
@@ -608,7 +712,8 @@ struct payload_media_fmt_pcm_t
         @h2xmle_rangeList   {"INVALID_VALUE"=0;
                              "BITS_PER_SAMPLE_16"=16;
                              "BITS_PER_SAMPLE_24"=24;
-                             "BITS_PER_SAMPLE_32"=32}
+                             "BITS_PER_SAMPLE_32"=32;
+                             "BITS_PER_SAMPLE_64"=64}
         @h2xmle_policy      {Basic} */
 
    uint16_t q_factor;
@@ -621,7 +726,8 @@ struct payload_media_fmt_pcm_t
           signed data.
         - Q23 for LSB-aligned, 24-bit_width unpacked (32 bits_per_sample)
           signed data.
-        - Q31 for 32-bit_width signed data@tablebulletend */
+        - Q31 for 32-bit_width signed data@tablebulletend
+        - Not applicable for floating point data format */
 
    /*#< @h2xmle_description {Indicates the Q factor of the PCM data:
                              - Q15 for 16-bit_width signed data
@@ -663,11 +769,11 @@ struct payload_media_fmt_pcm_t
    uint16_t num_channels;
    /**< Number of channels in the channel_mapping array.
 
-        @values 0 through 32 (Default = 0) */
+        @values 0 through 128 (Default = 0) */
 
    /*#< @h2xmle_description {Number of channels.}
         @h2xmle_default     {0}
-        @h2xmle_range       {0..32}
+        @h2xmle_range       {0..128}
         @h2xmle_policy      {Basic} */
 
 #if defined(__H2XML__)
@@ -703,8 +809,7 @@ typedef struct payload_media_fmt_pcm_t payload_media_fmt_pcm_t;
     Identifier for the parameter used to set the media format on any Shared
     Memory Endpoint module.
 
-    This parameter ID is set via APM_CMD_SET_CFG (see the <i>AudioReach SPF
-    API Reference</i> (80-VN500-5)). It is accepted only when the subgraph is
+    This parameter ID is set via APM_CMD_SET_CFG (see AudioReach Signal Processing Framework (SPF) API Reference). It is accepted only when the subgraph is
     in the Stop or Prepare state.
 
     @msgpayload
@@ -716,8 +821,7 @@ typedef struct payload_media_fmt_pcm_t payload_media_fmt_pcm_t;
     @h2xmlp_toolPolicy  {Calibration}
     @h2xmlp_description {ID for the parameter used to set the media format on
                          any Shared Memory Endpoint module. This parameter ID
-                         is set via APM_CMD_SET_CFG (see the <i>AudioReach SPF
-                         API Reference</i> (80-VN500-5)). It is accepted only
+                         is set via APM_CMD_SET_CFG (see AudioReach Signal Processing Framework (SPF) API Reference). It is accepted only
                          when the subgraph is in the Stop or Prepare state.} */
 
 /** @ingroup ar_spf_mod_media_fmt_ids
