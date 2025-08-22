@@ -8,8 +8,15 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - master
+      - njjetha
     paths-ignore:
       - '.github/**'
+  push:
+    branches: [ njjetha ]
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   load_parameters:
@@ -41,4 +48,8 @@ jobs:
   trigger_lava:
     needs: [ load_parameters, build, process_image ]
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@master
+    secrets: inherit
+
+  qcom-preflight-checks:
+    uses: Audioreach/audioreach-workflows/.github/workflows/qcom-preflight-checks.yml@njjetha
     secrets: inherit
