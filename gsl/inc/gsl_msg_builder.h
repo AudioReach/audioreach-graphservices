@@ -30,7 +30,7 @@ typedef struct gsl_msg {
 	uint32_t proc_id;
 } gsl_msg_t;
 
-int32_t gsl_msg_builder_init(uint32_t num_master_procs, uint32_t *master_procs);
+int32_t gsl_msg_builder_init(uint32_t num_procs, uint32_t *procs, uint32_t num_master_procs, uint32_t *master_procs);
 
 int32_t gsl_msg_builder_deinit(void);
 
