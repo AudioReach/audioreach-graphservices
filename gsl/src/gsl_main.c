@@ -879,6 +879,10 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	uint32_t num_procs = 0;
 	struct proc_domain_type *proc_domains = NULL;
 	bool_t is_shmem_supported = TRUE;
+	uint32_t dsp_list[AR_SUB_SYS_ID_LAST + 1] = {0};
+	uint32_t num_dsp = 0;
+	uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
+	uint32_t tmp_spf_ss_mask, spf_ss_map_mask;
 
 	ar_log_init();
 
@@ -992,7 +996,7 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	gsl_mdf_utils_get_master_proc_ids(&num_master_procs,
 					  master_procs);
 	master_procs = gsl_mem_zalloc(
-				sizeof(uint32_t)*(num_master_procs));
+				sizeof(uint32_t)*(AR_SUB_SYS_ID_LAST + 1));
 
 	if (master_procs == NULL) {
 		rc = AR_ENOMEMORY;
@@ -1045,7 +1049,17 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 					GSL_SPF_SS_STATE_UP);
 	}
 
-	rc = gsl_msg_builder_init(num_master_procs, master_procs);
+	tmp_spf_ss_mask = supported_ss_mask;
+	spf_ss_map_mask = supported_ss_mask;
+	while (tmp_spf_ss_mask){
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_map_mask, sys_id)) {
+			dsp_list[num_dsp++] = sys_id;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+	rc = gsl_msg_builder_init(num_dsp, dsp_list, num_master_procs, master_procs);
+
 	if (rc) {
 		GSL_ERR("msg builder init failed %d", rc);
 		goto spf_ss_state_deinit;
