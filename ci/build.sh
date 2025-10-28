@@ -7,6 +7,11 @@ echo "Running build script..."
 # Build/Compile audioreach-graphservices
 source ${GITHUB_WORKSPACE}/install/environment-setup-armv8-2a-poky-linux
 
+# download pkg.m4
+cd ${GITHUB_WORKSPACE}/install/sysroots/x86_64-pokysdk-linux/usr/share/aclocal
+wget https://raw.githubusercontent.com/pkgconf/pkgconf/master/pkg.m4
+cd -
+
 # make sure we are in the right directory
 cd ${GITHUB_WORKSPACE}
 # Run autoreconf to generate the configure script
