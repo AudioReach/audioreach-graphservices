@@ -15,7 +15,7 @@ cd -
 # make sure we are in the right directory
 cd ${GITHUB_WORKSPACE}
 # Run autoreconf to generate the configure script
-autoreconf -Wcross --verbose --install --force
+autoreconf -Wcross --verbose --install --force --exclude=autopoint
 autoconf --force
 
 # Run the configure script with the specified arguments
