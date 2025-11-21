@@ -4,8 +4,9 @@
  * \brief
  *      Manages shared memory allocations across all graphs in the system
  *
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause
+ * \copyright
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdint.h>
 #include "gsl_shmem_mgr.h"
@@ -873,6 +874,29 @@ static void *do_alloc_block(struct gsl_shmem_page *page,
 	int16_t found_block_idx, uint32_t frame_aligned_sz)
 {
 	uint32_t i = 0;
+	/* Validate block index is within bounds */
+	if (found_block_idx < 0 || found_block_idx >= (int16_t)page->max_num_blocks) {
+		GSL_ERR("do_alloc_block: invalid block index %d (max=%u)",
+			found_block_idx, page->max_num_blocks);
+		return NULL;
+	}
+
+	/* Retrieve the original size of the current block (excluding the used bit) */
+	uint32_t old_sz = page->blocks[found_block_idx].size_bytes &
+				~GSL_SHMEM_MGR_BLOCK_SZ_USED_BIT_MASK;
+	if (!old_sz) {
+		GSL_ERR("do_alloc_block: zero-size block page=%p idx=%d",
+			page, found_block_idx);
+		return NULL;
+    }
+
+	/* Requested size cannot be larger than the original free size */
+	if (old_sz < frame_aligned_sz) {
+		GSL_ERR("do_alloc_block: block too small sz=0x%x < req=0x%x page=%p idx=%d",
+			old_sz, frame_aligned_sz, page, found_block_idx);
+		return NULL;
+    }
+
 	int32_t found_block_successor_idx =
 		page->blocks[found_block_idx].successor_idx;
 
@@ -1068,9 +1092,32 @@ int32_t gsl_shmem_alloc_ext(uint32_t size_bytes, uint32_t spf_ss_mask,
 					alloc_data->spf_mmap_handle = page->spf_handle;
 					alloc_data->v_addr = do_alloc_block(page, j,
 						size_frame_aligned);
+					/* add null check for do_alloc_block */
+					if (!alloc_data->v_addr) {
+						GSL_ERR("do_alloc_block returned NULL "
+							"for current page %p", page);
+						alloc_data->handle = NULL;
+						alloc_data->spf_mmap_handle = 0;
+						rc = AR_EFAILED;
+						goto exit;
+					}
 					/* compute PA for this block */
-					offset = (uint8_t *)alloc_data->v_addr -
-						(uint8_t *)page->shmem_info.vaddr;
+					uintptr_t base = (uintptr_t)page->shmem_info.vaddr;
+					uintptr_t addr = (uintptr_t)alloc_data->v_addr;
+					if (addr >= base) {
+						offset = (uint64_t)(addr - base);
+					} else {
+						GSL_ERR("Failed to calculate offset because"
+							"addr(0x%lx)<base(0x%lx)",
+							(unsigned long)addr, (unsigned long)base);
+						/* Free the allocated block */
+						do_free_block(page, j);
+						alloc_data->v_addr = NULL;
+						alloc_data->handle = NULL;
+                        alloc_data->spf_mmap_handle = 0;
+						/* Break inner loop to try next page */
+						break;
+					}
 					if (GSL_SHMEM_IS_OFFSET_MODE(page->shmem_info.index_type)) {
 						alloc_data->spf_addr = offset;
 					} else {
@@ -1107,9 +1154,40 @@ int32_t gsl_shmem_alloc_ext(uint32_t size_bytes, uint32_t spf_ss_mask,
 		alloc_data->handle = page;
 		alloc_data->v_addr = do_alloc_block(page, 0, size_frame_aligned);
 		alloc_data->spf_mmap_handle = page->spf_handle;
+		/* add null check for do_alloc_block */
+		if (!alloc_data->v_addr) {
+			GSL_ERR("do_alloc_block returned NULL for new page %p free it", page);
+			alloc_data->handle = NULL;
+			alloc_data->spf_mmap_handle = 0;
+			rc = free_page(bin_idx, page, 0);
+			if (rc) {
+				GSL_ERR("Failed to free page after allocation failure: %d", rc);
+				goto exit;
+			}
+			rc = AR_EFAILED;
+			goto exit;
+		}
 		/* compute PA for this block */
-		offset = (uint8_t *)alloc_data->v_addr -
-			(uint8_t *)page->shmem_info.vaddr;
+		uintptr_t base = (uintptr_t)page->shmem_info.vaddr;
+		uintptr_t addr = (uintptr_t)alloc_data->v_addr;
+		if (addr >= base) {
+			offset = (uint64_t)(addr - base);
+		} else {
+			GSL_ERR("Failed to calculate offset because addr(0x%lx)<base(0x%lx)",
+				(unsigned long)addr, (unsigned long)base);
+			/* Free the allocated block */
+			do_free_block(page, 0);
+			alloc_data->v_addr = NULL;
+			alloc_data->handle = NULL;
+			alloc_data->spf_mmap_handle = 0;
+			rc = free_page(bin_idx, page, 0);
+			if (rc) {
+				GSL_ERR("Failed to free page after allocation failure: %d", rc);
+				goto exit;
+			}
+			rc = AR_EFAILED;
+			goto exit;
+		}
 		if (GSL_SHMEM_IS_OFFSET_MODE(page->shmem_info.index_type))
 			alloc_data->spf_addr = offset;
 		else
