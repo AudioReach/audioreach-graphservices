@@ -28,7 +28,6 @@ extern "C" {
 #define GSL_SHMEM_MAP_UNCACHED 0x4
 #define GSL_SHMEM_CMA 0x8
 #define GSL_SHMEM_MAP_CACHED 0x10
-#define GSL_SHMEM_PERSISTENT_CAL 0x20
 
 /* used to tell SPF we're doing something with CMA */
 #define GSL_GPR_CMA_FLAG_BIT 0x2
