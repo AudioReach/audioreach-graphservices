@@ -14,6 +14,14 @@
 #include "ar_osal_error.h"
 #include "ar_osal_heap.h"
 
+/* Use CLOCK_MONOTONIC for QNX, CLOCK_BOOTTIME for other platforms */
+#ifdef ARGS_IN_QNX
+#define AR_CLOCK_TYPE CLOCK_MONOTONIC
+#else
+#define AR_CLOCK_TYPE CLOCK_BOOTTIME
+#endif
+
+
 /**
  * \brief ar_timer_get_time_in_us
  *        Gets the wall clock time in microseconds
@@ -25,7 +33,7 @@ uint64_t ar_timer_get_time_in_us(void)
     uint64_t us = 0;
     struct timespec ts;
 
-    if (!clock_gettime(CLOCK_BOOTTIME, &ts))
+    if (!clock_gettime(AR_CLOCK_TYPE, &ts))
         us = ((ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000LL));
 
     return us;
@@ -42,7 +50,7 @@ uint64_t ar_timer_get_time_in_ms(void)
     uint64_t ms = 0;
     struct timespec ts;
 
-    if(!clock_gettime(CLOCK_BOOTTIME, &ts))
+    if(!clock_gettime(AR_CLOCK_TYPE, &ts))
         ms = ((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));
 
     return ms;
