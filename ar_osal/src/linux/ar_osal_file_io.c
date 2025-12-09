@@ -181,7 +181,7 @@ int32_t ar_funmap(const void *fbuffer)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int32_t ar_fseek(_In_ ar_fhandle handle,
-                   _In_ size_t offset, 
+                   _In_ size_t offset,
                    _In_ ar_fseek_reference_t ref)
 {
     int32_t rc = 0;
