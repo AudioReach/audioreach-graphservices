@@ -17,3 +17,4 @@ autoconf --force
 ./configure CFLAGS="-Wno-int-conversion" ${BUILD_ARGS}
 # make
 make DESTDIR=${GITHUB_WORKSPACE}/build install
+#####
