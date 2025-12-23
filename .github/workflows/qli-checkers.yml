@@ -3,7 +3,7 @@ on:
   pull_request_target:
     branches: [ stg-test ]
   push:
-    branches: [ master ]
+    branches: [ stg-test ]
   workflow_dispatch:
 
 jobs:
