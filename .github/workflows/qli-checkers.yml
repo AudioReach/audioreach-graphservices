@@ -1,7 +1,7 @@
 name: qli-checkers 
 on:
   pull_request_target:
-    branches: [ master ]
+    branches: [ stg-test ]
   push:
     branches: [ master ]
   workflow_dispatch:
