@@ -28,7 +28,9 @@ permissions:
 
 jobs:
   RUN-ARMOR:
-    runs-on: ubuntu-22.04
+    runs-on:
+      group: GHA-AudioReach-SelfHosted-RG
+      labels: [ self-hosted, audior-prd-u2204-x64-large-od-ephem ]
     steps:
       - uses: actions/checkout@v4
       - name: Set event variables
