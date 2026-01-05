@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- --with-glib --without-cutils --with-syslog --with-dummy_diag --with-qcom --with-audio_dma_support --without-ats_transport_tcp_ip --without-ats_data_logging --with-msm-audio-ion-disable
+
