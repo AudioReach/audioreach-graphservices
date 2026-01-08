@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libar-gsl
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+LOCAL_VENDOR_MODULE := true
 
 LOCAL_SRC_FILES := src/gsl_main.c \
     src/gsl_graph.c\
