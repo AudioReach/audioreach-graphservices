@@ -35,7 +35,7 @@ LOCAL_SRC_FILES := \
 LOCAL_MODULE := libar-acdb
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+LOCAL_VENDOR_MODULE := true
 
 LOCAL_HEADER_LIBRARIES := \
     libcutils_headers \
@@ -113,7 +113,7 @@ LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/diag/include
 LOCAL_MODULE := libats
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+LOCAL_VENDOR_MODULE := true
 
 LOCAL_HEADER_LIBRARIES := \
     libcutils_headers \

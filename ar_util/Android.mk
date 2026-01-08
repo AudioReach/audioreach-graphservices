@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := liblx-ar_util
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+LOCAL_VENDOR_MODULE := true
 
 LOCAL_SRC_FILES := \
     src/ar_util_list.c \
