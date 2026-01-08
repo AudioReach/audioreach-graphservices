@@ -1,0 +1,5 @@
+cc_library_headers {
+    name: "libarosal_headers",
+    export_include_dirs: ["api"],
+    vendor: true,
+}
