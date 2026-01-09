@@ -3,7 +3,7 @@ project: https://github.com/AudioReach/audioreach-graphservices
 branches:
   master:
     modes:
-      non-blocking:
+      blocking:
         headers:
           - ar_osal/api/*.h
           - ar_util/api/*.h
