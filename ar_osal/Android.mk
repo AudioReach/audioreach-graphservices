@@ -1,12 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := libarosal_headers
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/api
-LOCAL_PROPRIETARY_MODULE := true
-include $(BUILD_HEADER_LIBRARY)
-
-include $(CLEAR_VARS)
 
 #----------------------------------------------------------------------------
 #                 Common definitons
@@ -65,7 +59,7 @@ LOCAL_SHARED_LIBRARIES := liblog \
 LOCAL_MODULE := liblx-osal
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
-LOCAL_PROPRIETARY_MODULE := true
+LOCAL_VENDOR_MODULE := true
 
 ifneq ($(strip $(AUDIO_FEATURE_OLD_ION_IMPL)), true)
         include $(LIBION_HEADER_PATH_WRAPPER)
