@@ -49,13 +49,8 @@ else #!ARGS_VENDOR_QCOM
 osal_c_sources += ./src/linux/ar_osal_shmem.c
 endif
 
-if USE_DUMMY_DIAG
 AM_CFLAGS += -I$(top_srcdir)/acdb/ats/transports/diag/linux/inc/
 osal_c_sources += ./src/linux/ar_osal_stub_log_pkt_op.c
-else
-osal_c_sources += ./src/linux/qcom/ar_osal_log_pkt_op.c
-endif
-
 
 if ARGS_USE_SYSLOG
 AM_CFLAGS += -DAR_OSAL_USE_SYSLOG
@@ -84,7 +79,7 @@ endif
 if USE_DUMMY_DIAG
 #dummy diag, do not link real diag libs
 else
-libar_osal_la_LIBADD += -llog -ldiag
+libar_osal_la_LIBADD += -ldiag
 endif
 
 if USE_G_STR_FUNC
