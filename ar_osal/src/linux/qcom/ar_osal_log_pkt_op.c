@@ -11,7 +11,11 @@
 #include "ar_osal_log_pkt_op.h"
 #include "ar_osal_error.h"
 #include "ar_osal_log.h"
+#ifndef USE_DIAG_HEADERS
 #include "comdef.h"
+#else
+#include "diag_comdef.h"
+#endif
 #include "diag_lsm.h"
 #include "log.h"
 
