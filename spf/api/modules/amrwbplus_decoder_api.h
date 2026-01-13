@@ -4,7 +4,7 @@
  @file amrwbplus_api.h
  @brief This file contains AMRWBPLUS APIs
 
- Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  SPDX-License-Identifier: BSD-3-Clause
  Export of this technology or
  software is regulated by the U.S. Government, Diversion contrary to U.S.

@@ -5,7 +5,7 @@
   @file contexts_api.h
   @brief This file contains Public Context IDs that can be used by clients to configure the ACD module
 
-  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
   SPDX-License-Identifier: BSD-3-Clause
 ==============================================================================*/
 
