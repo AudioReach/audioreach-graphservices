@@ -7,7 +7,7 @@
  *	Maintains the state of all the audio proc_ids such as ADSP, CDSP, MDSP
  *	etc.
  *
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include "ar_osal_types.h"
