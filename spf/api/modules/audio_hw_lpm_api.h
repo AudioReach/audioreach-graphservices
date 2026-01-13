@@ -6,7 +6,7 @@
  *  	 This file contains lpm api for requesting/releasing LPM memory resources for remote client
  * 
  * \copyright
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 

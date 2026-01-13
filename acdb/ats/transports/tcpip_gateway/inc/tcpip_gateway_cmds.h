@@ -10,7 +10,7 @@
 *         This file contains definitions for server commands
 *
 *  \copyright
-*      Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+*      Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 *      SPDX-License-Identifier: BSD-3-Clause
 *==============================================================================
 */
