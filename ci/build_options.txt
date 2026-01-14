@@ -19,7 +19,7 @@
 --with-syslog
 --with-glib
 --without-cutils
---with-dummy_diag
+--without-dummy_diag
 --with-qcom
 --with-audio_dma_support
 --without-ats_transport_tcp_ip
