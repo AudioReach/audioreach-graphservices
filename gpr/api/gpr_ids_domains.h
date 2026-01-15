@@ -59,9 +59,15 @@ not Globally Unique IDs (GUIDS).
 
 /** SPF-on-ARM HLOS (APPS2) domain */
 #define GPR_IDS_DOMAIN_ID_APPS2_V     0xC
- 
+
+/** ADSP (ADSP1) domain */
+#define GPR_IDS_DOMAIN_ID_ADSP1_V     0xE
+
+/** ADSP (ADSP2) domain */
+#define GPR_IDS_DOMAIN_ID_ADSP2_V     0xF
+
 /** Highest domain ID. @hideinitializer */
-#define GPR_PL_MAX_DOMAIN_ID_V AR_NON_GUID( GPR_IDS_DOMAIN_ID_APPS2_V )
+#define GPR_PL_MAX_DOMAIN_ID_V AR_NON_GUID( GPR_IDS_DOMAIN_ID_ADSP2_V )
 
 /** Total number of domains. @hideinitializer */
 #define GPR_PL_NUM_TOTAL_DOMAINS_V ( GPR_PL_MAX_DOMAIN_ID_V + 1 )
