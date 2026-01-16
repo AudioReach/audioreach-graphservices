@@ -6,7 +6,7 @@
 *      Processes data for the ACDB SW commands.
 *
 * \copyright
-*  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+*  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 *  SPDX-License-Identifier: BSD-3-Clause
 *
 *=============================================================================
@@ -768,7 +768,16 @@ int32_t UpdateHeap(acdb_delta_data_map_t *req_map)
 
                     heap_caldata_node = heap_sg_data->non_global_data.cal_data_list.p_head;
                     req_caldata_node = req_sg_data->non_global_data.cal_data_list.p_head;
-
+                    if (IsNull(heap_caldata_node))
+                    {
+                        ACDB_ERR("heap_caldata_node is null for subgraph_id: %u", heap_sg_data->subgraph_id);
+                        continue;
+                    }
+                    if (IsNull(req_caldata_node))
+                    {
+                        ACDB_ERR("req_caldata_node is null for subgraph_id: %u", req_sg_data->subgraph_id);
+                        continue;
+                    }
                     do
                     {
                         found = FALSE;
