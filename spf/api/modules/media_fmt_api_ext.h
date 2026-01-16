@@ -6,7 +6,7 @@
  *  	 This file contains media format IDs and definitions
  *
  * \copyright
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  *  Portions copied from The Apple Lossless Audio Codec (ALAC) ALACMagicCookieDescription.txt, under
  *  Apache-2.0 license. Not a contribution

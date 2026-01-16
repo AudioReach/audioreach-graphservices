@@ -4,7 +4,7 @@
  * \brief
  *      Manages shared memory allocations across all graphs in the system
  *
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdint.h>

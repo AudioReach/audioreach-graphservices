@@ -5,7 +5,7 @@
   @file fluence_ffv_common_calibration.h
   @brief This file contains audio rtm logging parameters.
 
-  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
   SPDX-License-Identifier: BSD-3-Clause
 
 ==============================================================================*/

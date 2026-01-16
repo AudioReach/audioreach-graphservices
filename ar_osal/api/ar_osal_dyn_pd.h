@@ -8,7 +8,7 @@
  *      Defines APIs to create dynamic PD
  *      for the given processor domain.
  * \copyright
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 /**

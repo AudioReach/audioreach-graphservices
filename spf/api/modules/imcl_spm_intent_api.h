@@ -4,7 +4,7 @@
  @brief This file contains all the public intent names
  the intent related structs are defined in internal header files
 
- Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  SPDX-License-Identifier: BSD-3-Clause
 
  ====================================================================== */

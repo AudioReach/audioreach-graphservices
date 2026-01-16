@@ -7,7 +7,7 @@
  * runs in a certain subsystem (typically ADSP) and Spf satelite services
  * run in other subsystems suchs as MDSP or CDSP.
  *
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include "gsl_spf_ss_state.h"

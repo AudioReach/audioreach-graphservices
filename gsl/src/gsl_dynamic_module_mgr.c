@@ -5,7 +5,7 @@
  *      Manages the loading and unloading of Spf dynamic modules
  *
  * \copyright
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include "gsl_dynamic_module_mgr.h"

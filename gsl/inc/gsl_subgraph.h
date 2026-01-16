@@ -6,7 +6,7 @@
  * \brief
  *      Represents a single sub-graph
  *
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include "ar_util_list.h"

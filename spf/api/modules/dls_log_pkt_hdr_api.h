@@ -6,7 +6,7 @@
  *   This file contains data structures for log packet header.
  *
  * \copyright
- *    Copyright (c) Qualcomm Innovation Center, Inc. All Rights Reserved.
+ *    Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *    SPDX-License-Identifier: BSD-3-Clause
  */
 
