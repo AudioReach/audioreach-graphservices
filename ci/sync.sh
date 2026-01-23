@@ -20,3 +20,5 @@ for entry in "${REPOS[@]}"; do
         git clone "$url" "$dir"
     fi
 done
+
+echo "test"
