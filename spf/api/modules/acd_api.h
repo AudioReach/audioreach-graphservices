@@ -5,7 +5,7 @@
   @file acd_api.h
   @brief This file contains Public APIs for Audio Context Detection Engine Module
 
-  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
   SPDX-License-Identifier: BSD-3-Clause
 ==============================================================================*/
 

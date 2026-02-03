@@ -1,7 +1,7 @@
 #ifndef _CDSP_DYN_PD_H
 #define _CDSP_DYN_PD_H
 /**
- *  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 #include <AEEStdDef.h>

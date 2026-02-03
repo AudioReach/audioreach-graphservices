@@ -5,7 +5,7 @@
   @file cop_v2_packetizer_api.h
   @brief This file contains cop pack v2 module APIs
 
-  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
   SPDX-License-Identifier: BSD-3-Clause
 ==============================================================================*/
 // clang-format off

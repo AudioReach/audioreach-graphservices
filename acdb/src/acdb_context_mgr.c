@@ -7,7 +7,7 @@
 *      such as the file manager, delta file manager, and delta data heap
 *
 * \copyright
-*  Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+*  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 *  SPDX-License-Identifier: BSD-3-Clause
 *
 *=============================================================================
