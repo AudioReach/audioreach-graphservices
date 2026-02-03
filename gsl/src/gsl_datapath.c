@@ -1596,6 +1596,9 @@ static int32_t gsl_dp_read_heap(struct gsl_data_path_info *dp_info,
 	*filled_size = 0;
 	buff_size = buff->size;
 	buff_addr = buff->addr;
+	if (buff_size < dp_info->config.buff_size)
+		GSL_ERR("Client read size less than configured buff size, %u < %u",
+			buff_size, dp_info->config.buff_size);
 	/*
 	 * below while is to handle the case where client tries to read more than
 	 * one buffer size
