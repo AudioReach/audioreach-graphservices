@@ -27,6 +27,10 @@
 #include "dls_log_pkt_hdr_api.h"
 #include "gsl_msg_builder.h"
 #include "gsl_dls_client.h"
+#include "gsl_mdf_utils.h"
+#include "gsl_common.h"
+
+#define ADSP_PROC_ID    0x2
 
 /*dls client context structure */
 struct gsl_dls_client_ctxt dls_client_ctxt;
@@ -47,13 +51,18 @@ static int32_t gsl_dls_client_register_deregister_commit_log_buffer_event(enum g
     apm_cmd_header_t *apm_hdr;
     apm_module_register_events_t *event_payload;
     uint32_t event_param_data_size = GSL_ALIGN_8BYTE(sizeof(apm_module_register_events_t));
-
     /* Register to APM_MODULE_EVENTS*/
 
     gsl_memset(&gsl_msg, 0, sizeof(gsl_msg_t));
 
-	rc = gsl_msg_alloc(APM_CMD_REGISTER_MODULE_EVENTS, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
-		sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, event_param_data_size, false, &gsl_msg);
+    if (gsl_mdf_utils_is_master_proc(GSL_GET_SPF_SS_MASK(ADSP_PROC_ID))) {
+        rc = gsl_msg_alloc(APM_CMD_REGISTER_MODULE_EVENTS, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_ADSP_V, event_param_data_size, true, &gsl_msg);
+    } else {
+        rc = gsl_msg_alloc(APM_CMD_REGISTER_MODULE_EVENTS, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, event_param_data_size, false, &gsl_msg);
+    }
+
 	if (AR_FAILED(rc)) {
 		GSL_ERR("failed to allocate gsl msg. status %d", rc);
 		goto exit;
@@ -109,8 +118,13 @@ int32_t gsl_dls_client_alloc_shmem_and_config_dls_buffer()
 
     gsl_memset(&gsl_msg, 0, sizeof(gsl_msg_t));
 
-	rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
-		sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_config_buffer_param_data_size, false, &gsl_msg);
+    if (gsl_mdf_utils_is_master_proc(GSL_GET_SPF_SS_MASK(ADSP_PROC_ID))) {
+        rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_ADSP_V, dls_config_buffer_param_data_size, true, &gsl_msg);
+    } else {
+        rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_config_buffer_param_data_size, false, &gsl_msg);
+    }
 	if (AR_FAILED(rc)) {
 		GSL_ERR("failed to allocate GSL msg. status %d", rc);
 		goto exit;
@@ -238,10 +252,18 @@ int32_t gsl_dls_client_get_log_buffer(uint32_t log_buffer_index, struct gls_dls_
     dls_shmem_buffer_pool = (uint8_t *)dls_client_ctxt.dls_shmem.v_addr + dls_buffer_offset;
     dls_buffer_ptr = (dls_buf_hdr_t *)(dls_shmem_buffer_pool);
 
+    /* Skip the dls buffer header before sending it to the client since its not required by the client */
     dls_log_buffer->size = dls_buffer_ptr->buf_size - sizeof(dls_buf_hdr_t);
     dls_log_buffer->buffer = dls_shmem_buffer_pool + sizeof(dls_buf_hdr_t);
 
     return rc;
+}
+
+int32_t gsl_dls_client_set_used_buffers(struct gsl_dls_ready_buffer_index_list_t *buffer_index_list)
+{
+    //store used buffers in gsl dsl client context
+    gsl_memcpy(&dls_client_ctxt.used_buffers, sizeof(dls_client_ctxt.used_buffers), buffer_index_list,
+                sizeof(dls_client_ctxt.used_buffers));
 }
 
 int32_t gsl_dls_client_return_used_buffers(struct gsl_dls_ready_buffer_index_list_t *buffer_index_list)
@@ -250,12 +272,29 @@ int32_t gsl_dls_client_return_used_buffers(struct gsl_dls_ready_buffer_index_lis
     apm_cmd_header_t *apm_hdr;
     gsl_msg_t gsl_msg;
     dls_data_cmd_buffer_return_t *dls_buf_ret_cfg;
+    uint32_t dls_buf_ret_cfg_size = 0;
+    uint32_t signal_flags = 0;
     uint32_t dls_buffer_offset = 0;
-    uint32_t dls_buf_ret_cfg_size = GSL_ALIGN_8BYTE(sizeof(uint32_t)
-                                                    + (buffer_index_list->buffer_count * sizeof(dls_buf_start_addr_t)));
 
-    rc = gsl_msg_alloc(DLS_DATA_CMD_BUFFER_RETURN, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
-		sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_buf_ret_cfg_size, false, &gsl_msg);
+    rc = gsl_signal_timedwait(&dls_client_ctxt.ready_buffer_sig, GSL_SPF_TIMEOUT_MS,
+        &signal_flags, NULL, NULL);
+    if (rc) {
+        GSL_ERR("Ready buffer signal wait failed, rc is %d", rc);
+        return rc;
+    }
+
+    buffer_index_list = &dls_client_ctxt.used_buffers;
+
+    dls_buf_ret_cfg_size =  GSL_ALIGN_8BYTE(sizeof(uint32_t)
+                            + (buffer_index_list->buffer_count * sizeof(dls_buf_start_addr_t)));
+    if (gsl_mdf_utils_is_master_proc(GSL_GET_SPF_SS_MASK(ADSP_PROC_ID))) {
+        rc = gsl_msg_alloc(DLS_DATA_CMD_BUFFER_RETURN, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_ADSP_V, dls_buf_ret_cfg_size, true, &gsl_msg);
+    } else {
+        rc = gsl_msg_alloc(DLS_DATA_CMD_BUFFER_RETURN, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_buf_ret_cfg_size, false, &gsl_msg);
+    }
+
 	if (AR_FAILED(rc)) {
 		GSL_ERR("unable to allocate gsl msg for dls buffer return command. status %d", rc);
 		goto exit;
@@ -272,7 +311,7 @@ int32_t gsl_dls_client_return_used_buffers(struct gsl_dls_ready_buffer_index_lis
     }
 
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
-		&dls_client_ctxt.sig);
+	        &dls_client_ctxt.sig);
     if (AR_FAILED(rc)) {
         GSL_ERR("failed to return %d buffers to dls. status %d", dls_buf_ret_cfg->num_bufs, rc);
     }
@@ -300,8 +339,13 @@ int32_t gsl_dls_client_register_deregister_log_code(uint32_t log_code, bool_t is
 
     gsl_memset(&gsl_msg, 0, sizeof(gsl_msg_t));
 
-	rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
-		sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_log_code_cfg_size, false, &gsl_msg);
+    if (gsl_mdf_utils_is_master_proc(GSL_GET_SPF_SS_MASK(ADSP_PROC_ID))) {
+        rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_ADSP_V, dls_log_code_cfg_size, true, &gsl_msg);
+    } else {
+        rc = gsl_msg_alloc(APM_CMD_SET_CFG, GSL_DLS_CLIENT_GPR_SRC_PORT, DLS_MODULE_INSTANCE_ID,
+          sizeof(*apm_hdr), 0, GPR_IDS_DOMAIN_ID_APPS_V, dls_log_code_cfg_size, false, &gsl_msg);
+    }
 	if (AR_FAILED(rc)) {
 		GSL_ERR("unable to allocate gsl msg for register/deregister log code. status %d", rc);
 		goto exit;
@@ -326,7 +370,6 @@ int32_t gsl_dls_client_register_deregister_log_code(uint32_t log_code, bool_t is
     for (int i = 0; i < num_log_codes; i++) {
         param_payload->log_codes[i] = log_code;
     }
-
 	GSL_LOG_PKT("send_pkt", GSL_DLS_CLIENT_GPR_SRC_PORT, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*apm_hdr), gsl_msg.payload,
 		apm_hdr->payload_size);
@@ -386,9 +429,9 @@ static uint32_t gsl_dls_client_event_callback(gpr_packet_t *packet, void *callba
             GSL_DBG(
                 "recieved dls commit event: opcode(0x%x) event(0x%x) ",
                 packet->opcode, apm_event->event_id);
-
             dls_client_ctxt.buffer_ready_callback();
             __gpr_cmd_free(packet);
+            gsl_signal_set(&dls_client_ctxt.ready_buffer_sig, 0, 0, NULL);
         }
         break;
     }
@@ -412,6 +455,13 @@ int32_t gsl_dls_client_init(struct gsl_dls_buffer_pool_config_t *buffer_pool_con
     if (rc) {
         GSL_ERR("unable to create signal for dls events. status %d", rc);
         __gpr_cmd_deregister(GSL_DLS_CLIENT_GPR_SRC_PORT);
+        return rc;
+    }
+
+    rc = gsl_signal_create(&dls_client_ctxt.ready_buffer_sig, NULL);
+    GSL_ERR("Created ready buffer signal");
+    if (rc) {
+        GSL_ERR("unable to create signal for ready buffer event. status %d", rc);
         return rc;
     }
 
