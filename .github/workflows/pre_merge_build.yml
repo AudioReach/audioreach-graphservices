@@ -25,6 +25,7 @@ jobs:
     secrets: inherit
     with:
       build_args: ${{ needs.load_parameters.outputs.build_args }}
+      build_matrix: ${{ needs.load_parameters.outputs.build_matrix }}
       event_name: ${{ github.event_name }}
       pr_ref: ${{ github.event.pull_request.head.ref }}
       pr_repo: ${{ github.event.pull_request.head.repo.full_name }}
@@ -35,6 +36,7 @@ jobs:
     secrets: inherit
     with:
       event_name: ${{ github.event_name }}
+      build_matrix: ${{ needs.load_parameters.outputs.build_matrix }}
       pr_ref: ${{ github.event.pull_request.head.ref }}
       pr_repo: ${{ github.event.pull_request.head.repo.full_name }}
 
@@ -42,3 +44,5 @@ jobs:
     needs: [ load_parameters, build, process_image ]
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@master
     secrets: inherit
+    with:
+      build_matrix: ${{ needs.load_parameters.outputs.build_matrix }}
