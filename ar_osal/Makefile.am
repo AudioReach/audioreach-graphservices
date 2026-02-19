@@ -54,6 +54,7 @@ AM_CFLAGS += -I$(top_srcdir)/acdb/ats/transports/diag/linux/inc/
 osal_c_sources += ./src/linux/ar_osal_stub_log_pkt_op.c
 else
 osal_c_sources += ./src/linux/qcom/ar_osal_log_pkt_op.c
+AM_CFLAGS += -DUSE_DIAG_HEADERS
 endif
 
 
@@ -84,7 +85,7 @@ endif
 if USE_DUMMY_DIAG
 #dummy diag, do not link real diag libs
 else
-libar_osal_la_LIBADD += -llog -ldiag
+libar_osal_la_LIBADD += -ldiag
 endif
 
 if USE_G_STR_FUNC
