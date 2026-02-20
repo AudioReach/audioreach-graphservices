@@ -45,6 +45,7 @@ struct gsl_dls_buffer_pool_config_t buffer_pool_config;
 AtsBuffer dls_data_send_buffer;
 ar_osal_mutex_t buffer_ready_lock;
 ATS_DSL_TCPIP_SEND_CALLBACK ats_dls_tcpip_send_callback;
+ar_osal_thread_t thd_ready_buffer_routine;
 
 #if defined(_DEVICE_SIM)
 int32_t gsl_dls_client_is_feature_supported()
@@ -270,9 +271,47 @@ int32_t ats_dls_get_log_data(
 	// ATS_MEM_CPY_SAFE(rsp_buf, sizeof(uint32_t), &rsp, sizeof(AtsDlsLogDataHeader));
 	*rsp_buf_bytes_filled += sizeof(AtsDlsLogDataHeader) + rsp.total_log_data_size;
 
-	ATS_DBG("return buffers to spf");
-	gsl_dls_client_return_used_buffers(&ready_buffer_index_list);
+	ATS_DBG("set used buffers to gsl");
+	gsl_dls_client_set_used_buffers(&ready_buffer_index_list);
 	ATS_DBG("done returning buffers to spf");
+
+	return status;
+}
+
+void ats_dls_ready_buffer_thd(void* params){
+
+	while(true)
+	{
+		//wait for signal and release ready buffers to dsp
+
+		//get ready buffers from gsl
+
+		ATS_DBG("return buffers to spf");
+		gsl_dls_client_return_used_buffers(NULL);
+		ATS_DBG("done returning buffers to spf");
+	}
+}
+
+int32_t ats_dls_create_ready_buffer_thread()
+{
+	int32_t status = AR_EOK;
+	char_t* thd_name = "ATS_DLS_RDY_THD";
+	ar_osal_thread_attr_t thd_attr =
+    {
+        thd_name,
+        0xF4240,
+        0,
+    };
+
+    ar_osal_thread_start_routine r = \
+        (ar_osal_thread_start_routine)(ats_dls_ready_buffer_thd);
+
+    status = ar_osal_thread_create(&thd_ready_buffer_routine, &thd_attr, r, NULL);
+    if (AR_FAILED(status))
+    {
+        ATS_ERR("Error[%d]: Failed to create thread %s", status, thd_name);
+        return status;
+    }
 
 	return status;
 }
@@ -372,9 +411,15 @@ int32_t ats_dls_init(ATS_DSL_TCPIP_SEND_CALLBACK callback)
 	dls_data_send_buffer.buffer = ACDB_MALLOC(uint8_t, dls_data_send_buffer.buffer_size);
 
 	ats_dls_tcpip_send_callback = callback;
+
+	//start ready buffer thread
+	ats_dls_create_ready_buffer_thread();
 destroy_lock:
 	if(AR_FAILED(status))
+	{
+		ar_osal_thread_join_destroy(thd_ready_buffer_routine);
 		ar_osal_mutex_destroy(buffer_ready_lock);
+	}
 
 	return status;
 }
@@ -405,7 +450,7 @@ int32_t ats_dls_deinit(void)
 	}
 
 	ar_osal_mutex_destroy(buffer_ready_lock);
-
+	ar_osal_thread_join_destroy(thd_ready_buffer_routine);
 	//free ats dls send buffer
 
 	return status;
