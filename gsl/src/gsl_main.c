@@ -879,6 +879,7 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	struct proc_domain_type *proc_domains = NULL;
 	bool_t is_shmem_supported = TRUE;
 
+	return AR_ENOMEMORY;
 	ar_log_init();
 
 	rc = gpr_init();
