@@ -22,13 +22,10 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - test-pre-build
-    paths-ignore:
-      - '.github/**'
-  # Recommended: restrict permissions when using pull_request_target
+
 permissions:
   contents: read
   pull-requests: write
-  checks: write
 
 jobs:
   pre_merge_build:
