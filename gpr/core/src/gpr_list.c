@@ -44,6 +44,8 @@ static uint32_t gpr_list_init_internal(gpr_list_t              *list,
    return AR_EOK;
 }
 
+
+
 GPR_EXTERNAL uint32_t gpr_list_get_head(gpr_list_t *list, gpr_list_node_t **ret_node)
 {
    if (list == NULL || ret_node == NULL)
