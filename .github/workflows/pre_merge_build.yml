@@ -12,10 +12,12 @@ on:
         description: "PR head ref (branch) when manually dispatching"
         required: false
         type: string
+        default: ""
       pr_repo:
         description: "PR head repo full name (owner/repo) when manually dispatching"
         required: false
         type: string
+        default: ""
   pull_request_target:
     types: [opened, synchronize, reopened]
     branches:
@@ -26,9 +28,15 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  checks: write
 
 jobs:
   pre_merge_build:
+    # Ensure the called reusable workflow receives the needed permissions.
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
     uses: Audioreach/audioreach-workflows/.github/workflows/pre_merge_build.yml@test-pre-build
     with:
       event_name: ${{ github.event_name }}
