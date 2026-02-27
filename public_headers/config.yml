@@ -1,7 +1,7 @@
 project: https://github.com/AudioReach/audioreach-graphservices
 
 branches:
-  pre-test-build:
+  test-pre-build:
     modes:
       blocking:
         headers:
