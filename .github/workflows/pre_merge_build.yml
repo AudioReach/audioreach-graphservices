@@ -10,11 +10,11 @@ on:
     inputs:
       pr_ref:
         description: "PR head ref (branch) when manually dispatching"
-        required: true
+        required: false
         type: string
       pr_repo:
         description: "PR head repo full name (owner/repo) when manually dispatching"
-        required: true
+        required: false
         type: string
   pull_request_target:
     types: [opened, synchronize, reopened]
