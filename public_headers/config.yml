@@ -1,7 +1,7 @@
 project: https://github.com/AudioReach/audioreach-graphservices
 
 branches:
-  master:
+  pre-test-build:
     modes:
       blocking:
         headers:
@@ -20,3 +20,11 @@ branches:
           - spf/api/vcpm/*.h
           - spf/api/ar_utils/*.h
           - spf/api/ar_utils/generic/*.h
+abi_checks:
+  - path: usr/lib/libar-gsl.so
+  - path: usr/lib/libar-gsl.so  
+  - path: usr/lib/libar-spfhdrs.so
+  - path: usr/lib/libar-gpr.so
+  - path: usr/lib/libar-util.so
+  - path: usr/lib/libar-osal.so
+  - path: usr/lib/libar-acdb.so

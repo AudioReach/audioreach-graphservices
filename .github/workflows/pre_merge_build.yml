@@ -35,6 +35,7 @@ jobs:
       pull-requests: write
       checks: write
     uses: Audioreach/audioreach-workflows/.github/workflows/pre_merge_build.yml@test-pre-build
+    secrets: inherit
     with:
       event_name: ${{ github.event_name }}
       # Use PR values if PR event, else use workflow_dispatch inputs (may be empty).
