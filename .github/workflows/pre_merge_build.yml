@@ -6,14 +6,32 @@ run-name: >-
       || format('Pre Merge Build: {0}', github.run_number) }}
 
 on:
-  workflow_call:
+  workflow_dispatch:
+    inputs:
+      pr_ref:
+        description: "PR head ref (branch) when manually dispatching"
+        required: true
+        type: string
+      pr_repo:
+        description: "PR head repo full name (owner/repo) when manually dispatching"
+        required: true
+        type: string
   pull_request_target:
     types: [opened, synchronize, reopened]
     branches:
       - test-pre-build
     paths-ignore:
       - '.github/**'
+  # Recommended: restrict permissions when using pull_request_target
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   pre_merge_build:
     uses: Audioreach/audioreach-workflows/.github/workflows/pre_merge_build.yml@test-pre-build
+    with:
+      event_name: ${{ github.event_name }}
+      # Use PR values if PR event, else use workflow_dispatch inputs (may be empty).
+      pr_ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.ref || inputs.pr_ref }}
+      pr_repo: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name || inputs.pr_repo }}
