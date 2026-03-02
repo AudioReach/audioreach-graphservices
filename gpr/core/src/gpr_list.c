@@ -67,6 +67,7 @@ GPR_EXTERNAL uint32_t gpr_list_get_head(gpr_list_t *list, gpr_list_node_t **ret_
    return AR_EOK;
 }
 
+
 GPR_EXTERNAL uint32_t gpr_list_init(gpr_list_t              *list,
                                     gpr_list_lock_enter_fn_t lock_fn,
                                     gpr_list_lock_leave_fn_t unlock_fn)
