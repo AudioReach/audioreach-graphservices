@@ -19,6 +19,7 @@
  * Functions                                                                   *
  *****************************************************************************/
 
+
 static inline uint32_t gpr_list_raw_is_not_empty(gpr_list_t *list)
 {
    return (list->dummy.next != &list->dummy);
