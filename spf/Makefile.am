@@ -63,6 +63,7 @@ spf_sources = ./api/apm/apm_api.h \
                 ./api/modules/data_logging_api.h \
                 ./api/modules/data_marker_api.h \
                 ./api/modules/detection_cmn_api.h \
+                ./api/modules/history_buffer_api.h \
                 ./api/modules/display_port_api.h \
                 ./api/modules/dls_api.h \
                 ./api/modules/dls_log_pkt_hdr_api.h \
