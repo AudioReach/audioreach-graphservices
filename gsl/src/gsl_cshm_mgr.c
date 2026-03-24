@@ -67,7 +67,7 @@ gsl_mem_id_t gsl_get_mem_id(cshm_info_t *cmem_info) {
     if (index == cshm_ctx_glb.num_max_cshm_list) {
         cshm_ctx_glb.num_max_cshm_list = cshm_ctx_glb.num_max_cshm_list * 2;
         GSL_INFO("max client list limit reached. Expanding max client list to %d",cshm_ctx_glb.num_max_cshm_list)
-        cshm_info_t * mem_info_list = gsl_mem_zalloc(sizeof(cshm_info_t*) *
+        cshm_info_t **mem_info_list = gsl_mem_zalloc(sizeof(cshm_info_t*) *
                                                     cshm_ctx_glb.num_max_cshm_list);
         if (mem_info_list ==   NULL  ) {
             GSL_ERR("Failed to allocate global context");
