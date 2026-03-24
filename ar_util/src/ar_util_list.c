@@ -7,6 +7,7 @@
  *  SPDX-License-Identifier: BSD-3-Clause
  */
 
+
 #include "ar_util_list.h"
 #include "ar_osal_error.h"
 
