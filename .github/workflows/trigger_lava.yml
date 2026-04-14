@@ -1,0 +1,42 @@
+name: trigger_lava
+
+
+run-name: >
+  Pre Merge Build (trigger_lava) –
+  Run #${{ github.event.workflow_run.run_number }}
+
+
+on:
+  workflow_run:
+    workflows: [pre_merge_build]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  trigger_lava:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download test matrix
+        uses: actions/download-artifact@v4
+        with:
+          name: test-matrix
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Read matrix
+        id: matrix
+        run: |
+          MATRIX=$(cat test_matrix.json)
+          echo "test_matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger LAVA tests
+        uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@temp
+        secrets: inherit
+        with:
+          build_matrix: ${{ steps.matrix.outputs.test_matrix }}
