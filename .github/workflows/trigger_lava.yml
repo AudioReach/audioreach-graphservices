@@ -6,7 +6,8 @@ run-name: >
 
 on:
   workflow_run:
-    workflows: [pre_merge_build]
+    workflows:
+      - pre_merge_build
     types:
       - completed
 
@@ -24,19 +25,29 @@ jobs:
       test_matrix: ${{ steps.matrix.outputs.test_matrix }}
 
     steps:
-      - name: Download test matrix
+      - name: Download test matrix artifact
         uses: actions/download-artifact@v4
         with:
           name: test-matrix
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Read matrix
+      - name: Read test matrix
         id: matrix
+        shell: bash
         run: |
+          if [ ! -f test_matrix.json ]; then
+            echo "❌ test_matrix.json not found"
+            exit 1
+          fi
+
           MATRIX=$(cat test_matrix.json)
+
+          echo "Final test matrix:"
+          echo "$MATRIX" | jq .
+
           echo "test_matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
-  trigger_lava:
+  trigger_tests:
     needs: prepare_matrix
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@temp
