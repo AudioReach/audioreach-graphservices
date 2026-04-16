@@ -5,6 +5,6 @@ includedir=@includedir@
 
 Name: spf
 Description: spf library
-Version: @VERSION@
+Version: @LT_VERSION@
 Libs: -L${libdir} -lar-spfhdrs
 Cflags: -I${includedir}/spf -I${includedir}/spf/asps

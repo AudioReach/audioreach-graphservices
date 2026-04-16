@@ -48,4 +48,4 @@ libar_acdb_la_CC = @CC@
 libar_acdb_la_LIBADD = -lar-osal -L$(top_builddir)/ar_osal
 libar_acdb_la_SOURCES = $(acdb_c_sources)
 libar_acdb_la_CFLAGS = $(AM_CFLAGS)
-libar_acdb_la_LDFLAGS = -shared -avoid-version @LT_VERSION_NUMBER@
+libar_acdb_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
