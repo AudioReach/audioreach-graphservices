@@ -29,7 +29,6 @@ jobs:
           echo "test_matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
    trigger_lava:
-    runs-on: ubuntu-latest
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@temp
     secrets: inherit
     with:
