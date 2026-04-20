@@ -4,6 +4,10 @@ on:
   workflow_run:
     workflows:
       - pre_merge_build
+    branches:
+      - temp
+    paths-ignore:
+      - '.github/**'
     types:
       - completed
 
