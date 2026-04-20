@@ -2,11 +2,14 @@ name: trigger_lava_on_success
 
 on:
   workflow_run:
-    workflows: [pre_merge_build]
-    types: [completed]
+    workflows:
+      - pre_merge_build
+    types:
+      - completed
 
 permissions:
   contents: read
+  actions: read
   checks: write
   pull-requests: write
 
@@ -16,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       test_matrix: ${{ steps.matrix.outputs.test_matrix }}
+
     steps:
       - uses: actions/download-artifact@v4
         with:
