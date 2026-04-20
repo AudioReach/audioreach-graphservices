@@ -31,6 +31,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
 
       - id: matrix
+        shell: bash
         run: |
           test -f test_matrix.json
           MATRIX=$(cat test_matrix.json)
