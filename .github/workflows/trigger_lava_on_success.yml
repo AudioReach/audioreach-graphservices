@@ -33,4 +33,4 @@ jobs:
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@temp
     secrets: inherit
     with:
-      build_matrix: ${{ inputs.build_matrix }}
+      build_matrix: ${{ needs.prepare_matrix.outputs.test_matrix }}
