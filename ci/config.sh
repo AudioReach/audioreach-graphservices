@@ -8,6 +8,6 @@ REPOS=(
   "meta-ar|https://github.com/Audioreach/meta-ar.git"
 )
 
-PATCHES=(
-  "meta-ar|recipes/audio/audioreach-graphservices/0001-ar_osal-update-msm_audio.h-header-include-path.patch"
-)
+#PATCHES=(
+#  "meta-ar|recipes/audio/audioreach-graphservices/0001-ar_osal-update-msm_audio.h-header-include-path.patch"
+#)
