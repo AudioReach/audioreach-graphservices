@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [temp]
-    paths-ignore:
-      - '.github/**'
+    branches: [temp, njetha-test]
 
 jobs:
   load_parameters:
