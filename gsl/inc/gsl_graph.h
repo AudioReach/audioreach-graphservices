@@ -412,11 +412,16 @@ int32_t gsl_graph_prepare(struct gsl_graph *graph,
 	ar_osal_mutex_t lock);
 
 /**
- * \brief Configure the data path for this graph
+ * \brief Configure the data path for this graph.
  *
- * \param[in] graph: pointer to graph's meory
- * \param[in] read_write_flag: indicates which path is being configured, 1
- *	means READ path, 0 means WRITE path
+ * For GSL_DATA_MODE_EXTERN_PUSH_PULL, cfg must point to a
+ * gsl_cmd_configure_datapath_read_write_params (cast to v1 by caller).
+ * All other modes use gsl_cmd_configure_read_write_params directly.
+ *
+ * \param[in] graph: pointer to graph's memory
+ * \param[in] dir: indicates which path is being configured
+ * \param[in] cfg: data path config (v1 for normal modes; cast from v2 for
+ *                 EXTERN_PUSH_PULL)
  *
  * \return AR_EOK on success, error code otherwise
  */

@@ -486,9 +486,12 @@ static int32_t gsl_shmem_map_region_v1(struct gsl_shmem_page *page,
 		if (flags & GSL_SHMEM_LOANED)
 			mmap->mmap_header.property_flag |=
 			APM_MEMORY_MAP_BIT_MASK_IS_MEM_LOANED;
-		if (flags & GSL_SHMEM_MAP_UNCACHED)
+		if (flags & GSL_SHMEM_MAP_UNCACHED) {
 			mmap->mmap_header.property_flag |=
 				APM_MEMORY_MAP_BIT_MASK_IS_UNCACHED;
+			GSL_DBG("allocate_page: UNCACHED set, property_flag=0x%x",
+				mmap->mmap_header.property_flag);
+		}
 		if (dynamic_pd)
 			mmap->mmap_header.property_flag |=
 				APM_MEMORY_MAP_LOANED_MEMORY_HEAP_MNGR_TYPE_SAFE_HEAP <<
@@ -692,6 +695,13 @@ static int32_t gsl_shmem_map_region_v2(struct gsl_shmem_page *page,
 				if ((flags & GSL_SHMEM_LOANED) && is_loaned_candidate)  {
 					mmap_v2->mmap_header.property_flag |=
 					APM_MEMORY_MAP_BIT_MASK_IS_MEM_LOANED;
+				}
+
+				if (flags & GSL_SHMEM_MAP_UNCACHED) {
+					mmap_v2->mmap_header.property_flag |=
+						APM_MEMORY_MAP_BIT_MASK_IS_UNCACHED;
+					GSL_DBG("map_region_v2: UNCACHED set property_flag=0x%x",
+						mmap_v2->mmap_header.property_flag);
 				}
 
 				mmap_v2->mmap_payload.shm_addr_lsw = page->shmem_info.ipa_lsw + (region_index * region_size);
@@ -1772,11 +1782,15 @@ int32_t gsl_shmem_unmap_allocation(struct gsl_shmem_alloc_data *alloc_data,
 	return rc;
 }
 int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
-	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data)
+	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data,
+	uint32_t flags)
 {
 	int32_t rc = AR_EOK;
 	uint32_t size_page_aligned = 0;
 	struct gsl_shmem_page *page = NULL;
+
+	GSL_DBG("gsl_shmem_map_extern_mem: hdl=0x%llx size=%u flags=0x%x",
+		ext_mem_hdl, size_bytes, flags);
 
 	if (!ctxt[master_proc_id]) {
 		rc = AR_EUNSUPPORTED;
@@ -1790,7 +1804,7 @@ int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
 
 	// won't actually allocate when we send an ext_mem_handle, it will only map
 	rc = allocate_page(size_page_aligned, GSL_SHMEM_MGR_BIN_IDX_DEDICATED,
-		GSL_GET_SPF_SS_MASK(master_proc_id), 0, 0, ext_mem_hdl, master_proc_id,
+		GSL_GET_SPF_SS_MASK(master_proc_id), flags, 0, ext_mem_hdl, master_proc_id,
 		&page);
 	if (rc) {
 		GSL_ERR("failed to allocate page %d", rc);
