@@ -1810,6 +1810,54 @@ int32_t gsl_ioctl(gsl_handle_t graph_handle,
 			GSL_ERR("configure write params ioctl failed %d", rc);
 		break;
 
+	case GSL_CMD_CONFIGURE_DP_READ_PARAMS: {
+		struct gsl_cmd_configure_datapath_read_write_params *dp_rdcfg =
+			(struct gsl_cmd_configure_datapath_read_write_params *)cmd_payload;
+
+		if (cmd_payload_sz < sizeof(struct gsl_cmd_configure_datapath_read_write_params)) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp read params ioctl, inv payload size %d expected >=%zu",
+				cmd_payload_sz,
+				sizeof(struct gsl_cmd_configure_datapath_read_write_params));
+			break;
+		}
+		if ((dp_rdcfg->attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) !=
+			GSL_DATA_MODE_EXTERN_PUSH_PULL) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp read params: data_mode must be EXTERN_PUSH_PULL");
+			break;
+		}
+		rc = gsl_graph_config_data_path(graph, GSL_DATA_DIR_READ,
+			(struct gsl_cmd_configure_read_write_params *)dp_rdcfg);
+		if (rc)
+			GSL_ERR("configure dp read params ioctl failed %d", rc);
+		break;
+	}
+
+	case GSL_CMD_CONFIGURE_DP_WRITE_PARAMS: {
+		struct gsl_cmd_configure_datapath_read_write_params *dp_wrcfg =
+			(struct gsl_cmd_configure_datapath_read_write_params *)cmd_payload;
+
+		if (cmd_payload_sz < sizeof(struct gsl_cmd_configure_datapath_read_write_params)) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp write params ioctl, inv payload size %d expected >=%zu",
+				cmd_payload_sz,
+				sizeof(struct gsl_cmd_configure_datapath_read_write_params));
+			break;
+		}
+		if ((dp_wrcfg->attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) !=
+			GSL_DATA_MODE_EXTERN_PUSH_PULL) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp write params: data_mode must be EXTERN_PUSH_PULL");
+			break;
+		}
+		rc = gsl_graph_config_data_path(graph, GSL_DATA_DIR_WRITE,
+			(struct gsl_cmd_configure_read_write_params *)dp_wrcfg);
+		if (rc)
+			GSL_ERR("configure dp write params ioctl failed %d", rc);
+		break;
+	}
+
 	case GSL_CMD_GET_READ_BUFF_INFO:
 		if (cmd_payload_sz < sizeof(struct gsl_cmd_get_shmem_buf_info)) {
 			rc = AR_EBADPARAM;
@@ -2438,3 +2486,4 @@ exit:
 	GSL_MUTEX_UNLOCK(gsl_ctxt.acdb_client_lock);
 	return rc;
 }
+

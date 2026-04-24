@@ -65,7 +65,8 @@ int32_t gsl_shmem_alloc_ext(uint32_t size_bytes, uint32_t spf_ss_mask,
 	struct gsl_shmem_alloc_data *alloc_data);
 
 int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
-	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data);
+	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data,
+	uint32_t flags);
 
 int32_t gsl_shmem_unmap_extern_mem(struct gsl_shmem_alloc_data alloc_data);
 

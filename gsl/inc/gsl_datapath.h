@@ -216,6 +216,27 @@ int32_t gsl_dp_config_data_path(struct gsl_data_path_info *dp_info,
 	ar_osal_mutex_t lock, uint32_t proc_id);
 
 /**
+ * \brief Configure an external push-pull data path.
+ *
+ * Client provides two fd handles: one for the circular data buffer and one
+ * for the position buffer. GSL maps both to SPF at configure time and sends
+ * PARAM_ID_SH_MEM_PULL_PUSH_MODE_CFG. Client then directly accesses the
+ * mapped buffers using the VAs returned by gsl_dp_get_buff_info() and
+ * gsl_dp_get_pos_buff_info(). gsl_dp_write/read() are not used.
+ *
+ * \param[in] dp_info: pointer to data path
+ * \param[in] cfg: extern data path config (num_buffs=1, buff_size,
+ *                 alloc_handles[0]=circ fd, pos_buf_handle=pos fd)
+ * \param[in] src_port: source port of the parent graph
+ * \param[in] signal: graph signal used to wait for SPF SET_CFG response
+ * \param[in] proc_id: master proc id corresponding to the usecase
+ * \return AR_EOK on success, error code otherwise
+ */
+int32_t gsl_dp_config_extern_push_pull(struct gsl_data_path_info *dp_info,
+	struct gsl_cmd_configure_datapath_read_write_params *cfg,
+	struct gsl_signal *signal, uint32_t proc_id);
+
+/**
  * \brief Read data from a datapath
  *
  * \param[in] dp_info: pointer to data path
