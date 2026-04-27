@@ -19,6 +19,7 @@ source ${GITHUB_WORKSPACE}/install/environment-setup-armv8-2a-qcom-linux
 # make sure we are in the right directory
 cd ${GITHUB_WORKSPACE}
 
+
 # Run autoreconf to generate the configure script
 autoreconf -Wcross --verbose --install --force --exclude=autopoint
 autoconf --force
