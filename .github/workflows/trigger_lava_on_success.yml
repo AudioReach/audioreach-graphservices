@@ -2,14 +2,11 @@ name: trigger_lava_on_success
 
 on:
   workflow_run:
-    workflows:
-      - pre_merge_build
+    workflows: ["pre_merge_build"]
+    types:
+      - completed
     branches:
       - temp
-    paths-ignore:
-      - '.github/**'
-    types:
-      - Success
 
 permissions:
   contents: read
