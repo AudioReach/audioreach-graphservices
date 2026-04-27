@@ -22,12 +22,14 @@ jobs:
       test_matrix: ${{ steps.matrix.outputs.test_matrix }}
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download test matrix artifact
+        uses: actions/download-artifact@v4
         with:
           name: test-matrix
           run-id: ${{ github.event.workflow_run.id }}
 
-      - id: matrix
+      - name: Read matrix JSON
+        id: matrix
         shell: bash
         run: |
           test -f test_matrix.json
