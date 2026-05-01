@@ -97,6 +97,12 @@ AC_ARG_WITH([audio_dma_support],
     [with_audio_dma_support=no])
 AM_CONDITIONAL([AUDIO_DMA_SUPPORT], [test "x${with_audio_dma_support}" = "xyes"])
 
+AC_ARG_WITH([libdiag_headers],
+    AS_HELP_STRING([--with-libdiag_headers],[use libdiag headers only (default is no)]),
+    [with_libdiag_headers=$withval],
+    [with_libdiag_headers=no])
+AM_CONDITIONAL([LIBDIAG_HEADERS], [test "x${with_libdiag_headers}" = "xyes"])
+
 AC_ARG_WITH([libion],
     AS_HELP_STRING([use libion (default is no)]),
     [with_libion=$withval],

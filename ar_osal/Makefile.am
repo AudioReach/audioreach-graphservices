@@ -58,6 +58,9 @@ else
 osal_c_sources += ./src/linux/qcom/ar_osal_log_pkt_op.c
 endif
 
+if LIBDIAG_HEADERS
+AM_CFLAGS += -DUSE_LIBDIAG_HEADERS
+endif
 
 if ARGS_USE_SYSLOG
 AM_CFLAGS += -DAR_OSAL_USE_SYSLOG
@@ -86,7 +89,7 @@ endif
 if USE_DUMMY_DIAG
 #dummy diag, do not link real diag libs
 else
-libar_osal_la_LIBADD += -llog -ldiag
+libar_osal_la_LIBADD += -ldiag
 endif
 
 if USE_G_STR_FUNC
