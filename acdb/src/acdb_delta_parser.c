@@ -128,13 +128,24 @@ int32_t acdb_delta_parser_is_file_valid(
 		return ACDB_PARSE_INVALID_FILE;
 	}
 
-	if (file_size != file_header.file_data_size
-        + (sizeof(AcdbDeltaFileHeader) - sizeof(uint32_t)))
+	/* File data size should be at least 4 bytes (for the map count) for an empty delta file */
+	if(file_header.file_data_size == 0)
 	{
-		ACDB_ERR("Error[%d]: The delta file data section size %d is incorrect."
-            " It should be %d bytes",
+		ACDB_ERR("Error[%d]: The delta file data size of %d bytes is incorrect."
+            " It should be %d bytes for an empty file",
+			AR_EFAILED,
             file_header.file_data_size,
-            file_size - sizeof(AcdbDeltaFileHeader) - sizeof(uint32_t));
+            sizeof(uint32_t));//map_count
+		return ACDB_PARSE_INVALID_FILE;
+	}
+	else if (file_header.file_data_size > sizeof(uint32_t) && 
+			file_size != file_header.file_data_size + (sizeof(AcdbDeltaFileHeader) - sizeof(uint32_t)))
+	{
+		ACDB_ERR("Error[%d]: The delta file data size of %d is incorrect."
+            " It should be %d bytes",
+			AR_EFAILED,
+            file_header.file_data_size,
+            file_size - (sizeof(AcdbDeltaFileHeader) - sizeof(uint32_t)));
 		return ACDB_PARSE_INVALID_FILE;
 	}
 
