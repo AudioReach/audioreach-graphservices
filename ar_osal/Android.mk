@@ -90,6 +90,10 @@ ifeq ($(TARGET_PD_SERVICE_ENABLED), true)
     LOCAL_CFLAGS += -DAR_OSAL_USE_PD_NOTIFIER
 endif
 
+ifeq ($(AUDIO_FEATURE_ARE_ON_MDSP), true)
+    LOCAL_CFLAGS += -DMDSP_PROC
+endif
+
 LOCAL_SHARED_LIBRARIES += libcutils
 LOCAL_HEADER_LIBRARIES += vendor_common_inc
 

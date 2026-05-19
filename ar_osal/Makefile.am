@@ -47,8 +47,12 @@ else # Use ion based shmem implementation.
 osal_c_sources += ./src/linux/qcom/ar_osal_shmem_ion.c
 endif
 else #!ARGS_VENDOR_QCOM
+if AUDIO_DMA_SUPPORT
+osal_c_sources += ./src/linux/ar_osal_shmem_phy.c
+else
 # Use virtual memory based shmem implementation
-osal_c_sources += ./src/linux/ar_osal_shmem.c
+osal_c_sources += ./src/linux/ar_osal_shmem_virtual.c
+endif
 endif
 
 if USE_DUMMY_DIAG
