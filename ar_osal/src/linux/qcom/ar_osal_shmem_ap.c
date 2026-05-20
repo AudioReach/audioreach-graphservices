@@ -86,7 +86,11 @@ int32_t ar_shmem_ap_alloc(_Inout_ ar_shmem_info *info)
    info->pa_msw     = 0;
    info->index_type = AR_SHMEM_BUFFER_ADDRESS;
    info->mem_type   = AR_SHMEM_VIRTUAL_MEMORY;
-   posix_memalign(&p, SHMEM_4K_ALIGNMENT, info->buf_size);
+   if (0 != posix_memalign(&p, SHMEM_4K_ALIGNMENT, info->buf_size)) {
+      AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "Error: posix_memalign failed");
+      status = AR_ENOMEMORY;
+      goto end;
+   }
    info->vaddr = p;
    AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "vaddr(0x%p)", info->vaddr);
    if (NULL == info->vaddr)
