@@ -22,6 +22,8 @@
 #include "gsl_mdf_utils.h"
 
 #define GSL_AUDIO_PD_DOMAIN_STR "msm/adsp/audio_pd"
+#define GSL_AUDIO1_PD_DOMAIN_STR "msm/adsp1/audio_pd"
+#define GSL_AUDIO2_PD_DOMAIN_STR "msm/adsp2/audio_pd"
 #define GSL_COMPUTE_PD_DOMAIN_STR "msm/cdsp/audio_pd"
 #define GSL_COMPUTE_ROOT_PD_DOMAIN_STR "msm/cdsp/root_pd"
 #define GSL_MODEM_PD_DOMAIN_STR "msm/mdsp/audio_pd"
@@ -74,19 +76,29 @@ struct gsl_servreg_handle_list *servreg_handle_list;
 
 static uint32_t gsl_find_proc_id_from_name(char_t *name)
 {
-	uint32_t proc_id = AR_SUB_SYS_ID_INVALID;
+    uint32_t proc_id = AR_SUB_SYS_ID_INVALID;
 
-	if (!strcmp(name, GSL_AUDIO_PD_DOMAIN_STR))
-		proc_id = AR_AUDIO_DSP;
-	else if (!strcmp(name, GSL_COMPUTE_PD_DOMAIN_STR) ||
-			!strcmp(name, GSL_COMPUTE_ROOT_PD_DOMAIN_STR))
-		proc_id = AR_COMPUTE_DSP;
-	else if (!strcmp(name, GSL_MODEM_PD_DOMAIN_STR))
-		proc_id = AR_MODEM_DSP;
-	else if (!strcmp(name, GSL_SENSOR_PD_DOMAIN_STR))
-		proc_id = AR_SENSOR_DSP;
+    if (!strcmp(name, GSL_AUDIO_PD_DOMAIN_STR)) {
+        proc_id = AR_AUDIO_DSP;
+    }
+    else if (!strcmp(name, GSL_AUDIO1_PD_DOMAIN_STR)) {
+        proc_id = AR_AUDIO_DSP1;
+    }
+    else if (!strcmp(name, GSL_AUDIO2_PD_DOMAIN_STR)) {
+        proc_id = AR_AUDIO_DSP2;
+    }
+    else if (!strcmp(name, GSL_COMPUTE_PD_DOMAIN_STR) ||
+             !strcmp(name, GSL_COMPUTE_ROOT_PD_DOMAIN_STR)) {
+        proc_id = AR_COMPUTE_DSP;
+    }
+    else if (!strcmp(name, GSL_MODEM_PD_DOMAIN_STR)) {
+        proc_id = AR_MODEM_DSP;
+    }
+    else if (!strcmp(name, GSL_SENSOR_PD_DOMAIN_STR)) {
+        proc_id = AR_SENSOR_DSP;
+    }
 
-	return proc_id;
+    return proc_id;
 }
 
 static void servreg_callback(ar_osal_servreg_t servreg_handle,
