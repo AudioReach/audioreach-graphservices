@@ -117,6 +117,13 @@ void gsl_dls_client_get_ready_dls_buffer_list(struct gsl_dls_ready_buffer_index_
 int32_t gsl_dls_client_get_log_buffer(uint32_t log_buffer_index, struct gls_dls_buffer_t* dls_log_buffer);
 
 /**
+ * \brief Stores used log buffers in gsl dsl client context
+ *
+ * \param[in] buffer_index_list: list of buffers to be stored
+ */
+void gsl_dls_client_set_used_buffers(struct gsl_dls_ready_buffer_index_list_t *buffer_index_list);
+
+/**
  * \brief Returns used DLS buffers back to SPF
  *
  * \param[out] buffer_index_list: the list of buffers to return to DLS on SPF
