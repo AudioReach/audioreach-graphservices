@@ -408,7 +408,7 @@ int32_t ats_adie_rtc_init(void)
     status = adie_rtc_init();
     if (AR_FAILED(status))
     {
-        ATS_ERR("Failed to initialize ADIE RTC.", status);
+        ATS_ERR("Error[%d]: Failed to initialize ADIE RTC.", status);
         return status;
     }
 
@@ -416,7 +416,7 @@ int32_t ats_adie_rtc_init(void)
 
     if (AR_FAILED(status))
     {
-        ATS_ERR("Failed to register the ADIE Realtime Calibration Service.", status);
+        ATS_ERR("Error[%d]: Failed to register the ADIE Realtime Calibration Service.", status);
     }
 
     return status;
@@ -432,13 +432,13 @@ int32_t ats_adie_rtc_deinit(void)
 
     if (AR_FAILED(status))
     {
-        ATS_ERR("Failed to deregister the ADIE Realtime Calibration Service.", status);
+        ATS_ERR("Error[%d]: Failed to deregister the ADIE Realtime Calibration Service.", status);
     }
 
     status = adie_rtc_deinit();
     if (AR_FAILED(status))
     {
-        ATS_ERR("Failed to deinitialize ADIE RTC.", status);
+        ATS_ERR("Error[%d]: Failed to deinitialize ADIE RTC.", status);
         return status;
     }
 
@@ -472,4 +472,3 @@ int32_t ats_adie_rtc_get_version(uint32_t *major, uint32_t *minor)
 
     return status;
 }
-
