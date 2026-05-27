@@ -29,7 +29,7 @@
  *  Nonzero -- Failure
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-int32_t ar_shmem_validate_sys_id(_In_ uint8_t num_sys_id, _In_ uint8_t *sys_id)
+int32_t ar_shmem_validate_sys_id(_In_ uint8_t num_sys_id, _In_ ar_shmem_proc_info *sys_id)
 {
     PAGED_FUNCTION();
     int32_t status = AR_EOK;
@@ -41,12 +41,12 @@ int32_t ar_shmem_validate_sys_id(_In_ uint8_t num_sys_id, _In_ uint8_t *sys_id)
 
     for (uint8_t i = 0; i < num_sys_id; i++)
     {
-        if (AR_AUDIO_DSP != sys_id[i] &&
-            AR_MODEM_DSP != sys_id[i] &&
-            AR_SENSOR_DSP != sys_id[i] &&
-            AR_COMPUTE_DSP != sys_id[i] &&
-            AR_APSS != sys_id[i] &&
-            AR_APSS2 != sys_id[i])
+        if (AR_AUDIO_DSP != sys_id[i].proc_id &&
+            AR_MODEM_DSP != sys_id[i].proc_id &&
+            AR_SENSOR_DSP != sys_id[i].proc_id &&
+            AR_COMPUTE_DSP != sys_id[i].proc_id &&
+            AR_APSS != sys_id[i].proc_id &&
+            AR_APSS2 != sys_id[i].proc_id)
         {
             status = AR_EBADPARAM;
             break;
@@ -135,7 +135,11 @@ int32_t ar_shmem_alloc(_Inout_ ar_shmem_info *info)
     info->mem_type = AR_SHMEM_VIRTUAL_MEMORY;
 
 
-    posix_memalign(&p, SHMEM_4K_ALIGNMENT,info->buf_size);
+    if (0 != posix_memalign(&p, SHMEM_4K_ALIGNMENT, info->buf_size)) {
+        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "Error: posix_memalign failed");
+        status = AR_ENOMEMORY;
+        goto end;
+    }
     info->vaddr = p;
     AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "vaddr(0x%p)", info->vaddr);
     if (NULL == info->vaddr)
