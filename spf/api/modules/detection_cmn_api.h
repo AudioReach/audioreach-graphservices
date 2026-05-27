@@ -3,7 +3,7 @@
 /**
  * \file detection_cmn_api.h
  * \brief
- *  	 This file contains common parameters for listen libraries
+ *       This file contains common parameters for listen libraries
  *
  * \copyright
  *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
@@ -155,7 +155,6 @@ typedef struct param_id_detection_gain_t param_id_detection_gain_t;
            This parameter for this module has an additional 8-byte alignment
            requirement because it performs vector processing directly on the
            data.}
-    @h2xmlp_persistType  { Shared }
     @h2xmlp_toolPolicy {Calibration} */
 
 /* Unique Parameter id */
@@ -179,7 +178,7 @@ typedef struct param_id_detection_gain_t param_id_detection_gain_t;
            \n
            -All calibration parameters start from a 4-byte aligned address.
            This parameter for this module has an additional 256-byte alignment
-		       requirement if MLA is enabled and 8 byte alignment if MLA is disabled.}
+               requirement if MLA is enabled and 8 byte alignment if MLA is disabled.}
     @h2xmlp_toolPolicy {Calibration} */
 
 /* Structure definition for Parameter */
@@ -191,20 +190,20 @@ struct param_id_detection_engine_register_multi_sound_model_t
   uint32_t model_id;
   /**< @h2xmle_description {This is an unique number to differentiate
                             between different sound models to be loaded on DSP}
-		@h2xmle_range          {0..0xFFFFFFFE}
+        @h2xmle_range          {0..0xFFFFFFFE}
         @h2xmle_default    {0x0}*/
 
   uint32_t model_size;
   /**< @h2xmle_description {Indicated the size of the sound model.
                             Sound model payload follows this variable}
-		@h2xmle_range          {0..0xFFFFFFFF}
+        @h2xmle_range          {0..0xFFFFFFFF}
         @h2xmle_default    {0x0}*/
 
   uint8_t model[0];
   /**< @h2xmle_description {Sound Model Data Blob which is interpreted by the Library
-							              This Sound Model blob must be 256 bytes aligned if MLA is used
-							              This Sound Model blob must be 8byte aligned if MLA is not used.}
-     @h2xmle_default       {0}	*/
+                                          This Sound Model blob must be 256 bytes aligned if MLA is used
+                                          This Sound Model blob must be 8byte aligned if MLA is not used.}
+     @h2xmle_default       {0}  */
 }
 #include "spf_end_pragma.h"
 #include "spf_end_pack.h"
@@ -331,6 +330,13 @@ struct param_id_detection_engine_generic_event_cfg_t
         @h2xmle_rangeList   {Disabled=0;Enabled=1}
         @h2xmle_bitFieldEnd
 
+        @h2xmle_bitField    {0x00000040}
+        @h2xmle_bitName     {batch_drain_complete_info_t}
+        @h2xmle_description {Includes batch drain completion information for
+                             Force Recognition in detection event from History Buffer module}
+        @h2xmle_rangeList   {Disabled=0;Enabled=1}
+        @h2xmle_bitFieldEnd
+
       @h2xmle_default      {1}*/
 }
 #include "spf_end_pack.h"
@@ -384,6 +390,7 @@ typedef enum detection_engine_event_key_id_info_t
    KEY_ID_FTRT_DATA_INFO,                  /**< FTRT Data length in the circular buffer.  */
    KEY_ID_BEST_CH_IDX_INFO,                /**< Best Ch Idx detected by the algorithm  */
    KEY_ID_VOICE_UI_MULTI_MODEL_RESULT_INFO,     /**< Multi Model Detection Engine result info */
+   KEY_ID_BATCH_DRAIN_COMPLETE,            /**< Batch drain complete notification for Force Recognition in batching mode */
    KEY_ID_MAX_VALUE =  0x7FFFFFFF          /**< Maxium supported value for KEY_ID.  */
 }detection_engine_event_key_id_info_t;
 
@@ -402,7 +409,8 @@ struct detection_event_info_header_t
         - #KEY_ID_TIMESTAMP_INFO
         - #KEY_ID_FTRT_DATA_INFO
         - #KEY_ID_BEST_CH_IDX_INFO
-	- #KEY_ID_VOICE_UI_MULTI_MODEL_RESULT_INFO @tablebulletend */
+        - #KEY_ID_BATCH_DRAIN_COMPLETE
+    - #KEY_ID_VOICE_UI_MULTI_MODEL_RESULT_INFO @tablebulletend */
 
    uint32_t payload_size;
    /**< Size of a specific key payload.
@@ -620,6 +628,24 @@ struct model_stats_t
         @h2xmle_default     {0} */
 };
 typedef struct model_stats_t model_stats_t;
+
+/* Payload associated with the KEY_ID_BATCH_DRAIN_COMPLETE type*/
+
+/** @h2xmlp_subStruct
+    @h2xmlp_toolPolicy   {NO_SUPPORT} */
+
+/**<@h2xmlp_description {Information about batch drain completion for Force Recognition.
+                         Used when batch drain complete notification is expected in a
+                         generic detection engine event from History Buffer in batching mode.} */
+struct batch_drain_complete_info_t
+{
+   uint32_t drain_complete;
+   /**< @h2xmle_description {Flag indicating partial batch drain is complete. Always set to 1.}
+        @h2xmle_range         {1..1}
+        @h2xmle_default       {1} */
+};
+typedef struct batch_drain_complete_info_t batch_drain_complete_info_t;
+
 /** @} */ /* end_weakgroup weak_detection_event_info_header_t */
 /*==============================================================================
    Constants
@@ -718,16 +744,20 @@ struct param_id_detection_engine_multi_model_buffering_config_t
 ;
 typedef struct param_id_detection_engine_multi_model_buffering_config_t param_id_detection_engine_multi_model_buffering_config_t;
 
+
+
 #define PARAM_ID_DETECTION_ENGINE_PER_MODEL_RESET 0x080014ED
+
 /** @h2xmlp_parameter    {"PARAM_ID_DETECTION_ENGINE_PER_MODEL_RESET", PARAM_ID_DETECTION_ENGINE_PER_MODEL_RESET}
     @h2xmlp_description  { Resets the Detection Engine model to its initial algorithm stage and begins a new detection\n}
-    @h2xmlp_toolPolicy   {Calibration} */
+    @h2xmlp_toolPolicy   {Calibration}*/
 
 #include "spf_begin_pack.h"
 struct param_id_detection_engine_per_model_reset_t
 {
     uint32_t model_id;
-    /**< @h2xmle_description {This is an unique number to differentiate between different sound models to perform reset}
+    /**< @h2xmle_description {This is an unique number to differentiate
+                            between different sound models to perform reset}
          @h2xmle_default     {0x0}
          @h2xmle_range       {0..0xFFFFFFFE} */
 }
@@ -736,3 +766,4 @@ struct param_id_detection_engine_per_model_reset_t
 typedef struct param_id_detection_engine_per_model_reset_t param_id_detection_engine_per_model_reset_t;
 
 #endif /* _DETECTION_CMN_API_H_ */
+
