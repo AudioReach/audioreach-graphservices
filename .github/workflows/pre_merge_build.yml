@@ -1,13 +1,13 @@
 ---
 name: pre_merge_build
+
 run-name: ${{ github.event.pull_request.number && 'Pre Merge Build PR:' || 'Pre Merge Build:' }}${{ github.event.pull_request.number || github.run_number }}
 
 on:
   workflow_dispatch:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - master
+    branches: [master]
     paths-ignore:
       - '.github/**'
 
@@ -31,7 +31,7 @@ jobs:
       pr_repo: ${{ github.event.pull_request.head.repo.full_name }}
 
   process_image:
-    needs: [ load_parameters, build ]
+    needs: [load_parameters, build]
     uses: Audioreach/audioreach-workflows/.github/workflows/process_image.yml@master
     secrets: inherit
     with:
@@ -49,42 +49,26 @@ jobs:
       - id: filter
         shell: bash
         run: |
-            MATRIX='${{ needs.load_parameters.outputs.build_matrix }}'
+          MATRIX='${{ needs.load_parameters.outputs.build_matrix }}'
 
-            echo "RAW build_matrix:"
-            echo "$MATRIX"
+          echo "$MATRIX" | jq . >/dev/null
 
-            echo "Validating JSON..."
-            echo "$MATRIX" | jq . >/dev/null
+          FILTERED=$(echo "$MATRIX" | jq -c '
+            if type == "object" then
+              to_entries
+              | map(select(.value.testing_enabled == true))
+              | from_entries
+            elif type == "array" then
+              map(select(.testing_enabled == true))
+            else
+              error("Unsupported JSON type")
+            end
+          ')
 
-            # Supports:
-            # 1) object keyed by name: { "name": {testing_enabled:true}, ... }
-            # 2) array of entries: [ {Testing_enabled:true,...}, ... ]  (will convert to include list)
-            FILTERED=$(
-              echo "$MATRIX" | jq -c '
-                if type == "object" then
-                  to_entries
-                  | map(select(.value.testing_enabled == true))
-                  | from_entries
-                elif type == "array" then
-                  map(select(.testing_enabled == true))  # <-- Just return the array
-                else
-                  error("Unsupported build_matrix JSON type: " + (type|tostring))
-                end
-              '
-            )
+          echo "$FILTERED" > test_matrix.json
+          echo "test_matrix=$FILTERED" >> "$GITHUB_OUTPUT"
 
-            echo "Filtered matrix (pretty):"
-            echo "$FILTERED" | jq .
-
-            echo "test_matrix=$FILTERED" >> "$GITHUB_OUTPUT"
-
-  trigger_lava:
-    needs: [ process_image, filter_test_matrix ]
-    permissions:
-      checks: write
-      pull-requests: write
-    uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@master
-    secrets: inherit
-    with:
-      build_matrix: ${{ needs.filter_test_matrix.outputs.test_matrix }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-matrix
+          path: test_matrix.json
