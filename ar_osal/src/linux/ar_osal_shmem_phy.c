@@ -20,7 +20,7 @@
 #include <sys/ioctl.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-heap.h>
-#include "msm_audio.h"
+#include <linux/msm_audio.h>
 #include "ar_osal_shmem.h"
 #include "ar_osal_error.h"
 #include "ar_osal_log.h"
