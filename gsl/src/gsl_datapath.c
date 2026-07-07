@@ -522,6 +522,73 @@ exit:
 	return gsl_md_buff;
 }
 
+static int32_t gsl_hpcm_data_buf_cfg(struct gsl_data_path_info *dp_info,
+	struct gsl_buff_internal *buff, uintptr_t offset,
+	uint32_t size, uint32_t buff_idx, uint32_t flags, uint64_t timestamp)
+{
+	int32_t rc = AR_EOK;
+	struct apm_cmd_header_t *apm_hdr = NULL;
+	struct apm_module_param_data_t *param_hdr = NULL;
+	struct  param_id_hpcm_data_buf_cfg_t *buf_cfg_cmd = NULL;
+	uint8_t *spf_cmd;
+	uint32_t spf_cmd_sz = 0;
+	struct gpr_packet_t *send_pkt;
+	uint64_t tmp;
+
+	spf_cmd_sz = GSL_ALIGN_8BYTE(sizeof(*apm_hdr) + sizeof(*param_hdr) +
+		sizeof(*buf_cfg_cmd));
+
+	rc = gsl_allocate_gpr_packet(APM_CMD_SET_CFG, dp_info->src_port,
+			dp_info->miid, spf_cmd_sz, buff_idx, dp_info->master_proc_id, &send_pkt);
+
+	if (rc) {
+		GSL_ERR("Failed to allocate GPR packet %d", rc);
+		goto exit;
+	}
+
+	spf_cmd = GPR_PKT_GET_PAYLOAD(uint8_t, send_pkt);
+	gsl_memset(spf_cmd, 0, spf_cmd_sz);
+
+	apm_hdr = (struct apm_cmd_header_t *)spf_cmd;
+	param_hdr = (struct apm_module_param_data_t *)
+		(spf_cmd + sizeof(*apm_hdr));
+	buf_cfg_cmd = (struct param_id_hpcm_data_buf_cfg_t *)(spf_cmd +
+		sizeof(*apm_hdr) + sizeof(*param_hdr));
+
+	apm_hdr->payload_size = spf_cmd_sz - sizeof(*apm_hdr);
+	param_hdr->module_instance_id = dp_info->miid;
+	param_hdr->param_id = PARAM_ID_HPCM_DATA_BUF_CFG;
+	param_hdr->param_size = sizeof(*buf_cfg_cmd);
+
+	tmp = buff->gsl_msg.shmem.spf_addr + offset;
+
+	GSL_VERBOSE("buff_idx %d flags %d tmp 0x%llX", buff_idx, flags, tmp);
+	if (flags == GSL_DATA_DIR_WRITE) {
+		buf_cfg_cmd->mask = GSL_DATA_DIR_WRITE + 1;
+		buf_cfg_cmd->wr_buff_addr_lsw = (uint32_t)tmp;
+		buf_cfg_cmd->wr_buff_addr_msw = (uint32_t)(tmp >> 32);
+		buf_cfg_cmd->wr_buff_size = size;
+		buf_cfg_cmd->wr_mem_map_handle = buff->gsl_msg.shmem.spf_mmap_handle;
+	} else if (flags == GSL_DATA_DIR_READ) {
+		buf_cfg_cmd->mask = GSL_DATA_DIR_READ + 1;
+		buf_cfg_cmd->rd_buff_addr_lsw = (uint32_t)tmp;
+		buf_cfg_cmd->rd_buff_addr_msw = (uint32_t)(tmp >> 32);
+		buf_cfg_cmd->rd_buff_size = size;
+		buf_cfg_cmd->rd_mem_map_handle = buff->gsl_msg.shmem.spf_mmap_handle;
+	}
+
+	GSL_VERBOSE("Send HPCM Command to Spf dir %d p_addr 0x%llX, size %u",
+		flags, tmp, size);
+
+	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&send_pkt,
+		&dp_info->dp_signal);
+	if (rc)
+		GSL_ERR("HPCM Command failed with %d", rc);
+
+exit:
+	return rc;
+}
+
 /*
  * update the spf returned metadata status and size to tail entry in the
  * internal metadata buff list
@@ -1483,9 +1550,14 @@ static int32_t gsl_dp_write_heap(struct gsl_data_path_info *dp_info,
 				goto exit;
 			}
 		}
-
-		rc = gsl_dp_write_shmem(dp_info, internal_buf, internal_md_buf, 0,
-			buf_idx, write_buff_size, buff);
+		if (dp_info->module_id == MODULE_ID_HPCM){
+			GSL_INFO("HOSTPC Data Write usecase");
+			rc =  gsl_hpcm_data_buf_cfg(dp_info, internal_buf, 0, write_buff_size,
+					buf_idx, GSL_DATA_DIR_WRITE, buff->timestamp);
+		} else {
+			rc = gsl_dp_write_shmem(dp_info, internal_buf, internal_md_buf, 0,
+				buf_idx, write_buff_size, buff);
+		}
 		if (rc != AR_EOK) {
 			GSL_VERBOSE("gsl_dp_write_shmem fail rc=%d", rc);
 			goto exit;
@@ -1680,10 +1752,15 @@ static int32_t gsl_dp_read_heap(struct gsl_data_path_info *dp_info,
 					internal_md_buf->size = buff->metadata_size;
 				}
 			}
-
-			/* queue the shmem buffer back to spf */
-			rc = gsl_dp_read_shmem(dp_info, internal_buf, internal_md_buf, 0,
-				dp_info->config.buff_size, buf_idx);
+			if (dp_info->module_id == MODULE_ID_HPCM){
+				GSL_INFO("HPCM Read Buff Usecase");
+				rc = gsl_hpcm_data_buf_cfg(dp_info, internal_buf, 0, read_buff_size,
+						buf_idx, GSL_DATA_DIR_READ, 0);
+			} else {
+				/* queue the shmem buffer back to spf */
+				rc = gsl_dp_read_shmem(dp_info, internal_buf, internal_md_buf, 0,
+					dp_info->config.buff_size, buf_idx);
+			}
 			if (rc != AR_EOK)
 				goto exit;
 		}
@@ -2517,12 +2594,150 @@ int32_t gsl_dp_queue_read_buffers_to_spf(struct gsl_data_path_info *dp_info)
 							dp_info->config.max_metadata_size;
 					}
 				}
-
-				gsl_dp_read_shmem(dp_info, internal_buff,
-					internal_md_buf, 0,	dp_info->config.buff_size, i);
+				if (dp_info->module_id == MODULE_ID_HPCM) {
+					GSL_VERBOSE("Queuing Initial Read buffers for HPCM");
+					gsl_hpcm_data_buf_cfg(dp_info, internal_buff, 0, dp_info->config.buff_size,
+							i, GSL_DATA_DIR_READ, 0);
+				} else {
+					gsl_dp_read_shmem(dp_info, internal_buff,
+						internal_md_buf, 0, dp_info->config.buff_size, i);
+				}
 			}
 		}
 	}
 
 	return rc;
+}
+
+static uint32_t gsl_hpcm_get_buff_idx(uint32_t buff_addr_lsw, uint32_t buff_addr_msw,
+		struct gsl_buff_internal * buff_list, uint32_t num_buff)
+{
+	uint32_t buff_idx = 0;
+	for (buff_idx = 0; buff_idx < num_buff; buff_idx++) {
+		if ((buff_addr_msw == (uint32_t)(buff_list[buff_idx].gsl_msg.shmem.spf_addr >> 32)) &&
+			(buff_addr_lsw == (uint32_t)(buff_list[buff_idx].gsl_msg.shmem.spf_addr) )) {
+			break;
+		}
+	}
+	return buff_idx;
+}
+
+void gsl_handle_hpcm_buff_done(struct gsl_data_path_info *datapath,
+                gsl_cb_func_ptr cb, void *client_data, void *payload)
+{
+	struct event_id_hpcm_host_buf_done_t *buf_done = (struct event_id_hpcm_host_buf_done_t *)payload;
+	struct gsl_data_path_info *dp_info = NULL;
+	uint32_t data_mode, buff_idx = 0, pa_msw = 0, pa_lsw = 0, status = 0;
+	struct gsl_buff_internal *gsl_buff = NULL;
+	/* used to pass to client in callback */
+	struct gsl_event_read_write_done_payload rw_done_payload;
+	uint64_t pa, offset;
+	struct gsl_event_cb_params ev;
+
+	GSL_VERBOSE("HPCM Buf Done: mask %d num_buffers %d", buf_done->mask, buf_done->num_buffers);
+	if (buf_done->mask & (GSL_DATA_DIR_READ+1)) {
+		buff_idx = gsl_hpcm_get_buff_idx(buf_done->rd_buff_addr_lsw,
+				buf_done->rd_buff_addr_msw,
+				&datapath->buff_list[0],
+				datapath->config.num_buffs);
+
+		if (buff_idx == datapath->config.num_buffs) {
+			GSL_ERR("HPCM: read buffer address not found in buff_list");
+			goto exit;
+		}
+
+		/* read case */
+		dp_info = datapath;
+		gsl_buff = &dp_info->buff_list[buff_idx];
+		ev.event_id = GSL_EVENT_ID_READ_DONE;
+		status = buf_done->mask & (1 << 3);
+		pa_msw = buf_done->rd_buff_addr_msw;
+		pa_lsw = buf_done->rd_buff_addr_lsw;
+		gsl_buff->size_from_spf = buf_done->rd_buff_size;
+		gsl_buff->spf_timestamp = 0;
+		gsl_buff->spf_flags = 0;
+
+		/* below needed to pass data back to client in shmem mode */
+		rw_done_payload.tag = dp_info->cached_tag;
+		rw_done_payload.buff.flags = 0;
+		rw_done_payload.buff.timestamp = 0;
+		GSL_VERBOSE("HPCM Read_Done buf idx %d, size_from_spf %d",
+				buff_idx, gsl_buff->size_from_spf);
+		GSL_VERBOSE("rd_lsw 0x%lX rd_msw 0x%lX rd_size %d ",
+				buf_done->rd_buff_addr_lsw,
+				buf_done->rd_buff_addr_msw,
+				buf_done->rd_buff_size);
+	} else if (buf_done->mask & (GSL_DATA_DIR_WRITE+1)) {
+		buff_idx = gsl_hpcm_get_buff_idx(buf_done->wr_buff_addr_lsw,
+				buf_done->wr_buff_addr_msw,
+				&datapath->buff_list[0],
+				datapath->config.num_buffs);
+
+	if (buff_idx == datapath->config.num_buffs) {
+		GSL_ERR("HPCM: write buffer address not found in buff_list");
+		goto exit;
+	}
+
+		/* write case */
+		dp_info = datapath;
+		gsl_buff = &dp_info->buff_list[buff_idx];
+		ev.event_id = GSL_EVENT_ID_WRITE_DONE;
+		status = buf_done->mask & (1 << 4);
+		pa_msw = buf_done->wr_buff_addr_msw;
+		pa_lsw = buf_done->wr_buff_addr_lsw;
+		rw_done_payload.tag = dp_info->cached_tag;
+		gsl_buff->size_from_spf = 0;
+		GSL_VERBOSE("HPCM Write_Done buf idx %d size_from_spf %u",
+				buff_idx, buf_done->wr_buff_size);
+		GSL_VERBOSE("wr_lsw 0x%lX wr_msw 0x%lX wr_size %d ",
+				buf_done->wr_buff_addr_lsw,
+				buf_done->wr_buff_addr_msw,
+				buf_done->wr_buff_size);
+		if (buf_done->wr_buff_size == 0)
+			goto exit;
+	} else {
+		if (buf_done->mask & (4)) {
+			GSL_ERR("SPF_HOST_PCM_TIMETICK num_buffers %d ", buf_done->num_buffers);
+		}
+		goto exit;
+	}
+
+	data_mode = dp_info->config.attributes & GSL_ATTRIBUTES_DATA_MODE_MASK;
+
+	if (data_mode == GSL_DATA_MODE_BLOCKING) {
+		gsl_mark_buffer_as_avail(dp_info, buff_idx);
+		gsl_signal_set(&dp_info->dp_signal,
+			GSL_SIG_EVENT_MASK_SPF_RSP, status, NULL);
+	} else if (data_mode == GSL_DATA_MODE_NON_BLOCKING) {
+		gsl_mark_buffer_as_avail(dp_info, buff_idx);
+		ev.event_payload = NULL;
+		ev.event_payload_size = 0;
+		ev.source_module_id = GSL_EVENT_SRC_MODULE_ID_GSL;
+		if (cb)
+			cb(&ev, client_data);
+
+		/*
+		 * below signal set is needed during close as gsl_graph_close waits for
+		 * all buffers to come back from Spf
+		 */
+		gsl_signal_set(&dp_info->dp_signal,
+			GSL_SIG_EVENT_MASK_SPF_RSP, status, NULL);
+
+	} else if ((data_mode == GSL_DATA_MODE_SHMEM) && gsl_buff) {
+		pa = GSL_TO_64_BIT(pa_msw, pa_lsw);
+		offset = pa - gsl_buff->gsl_msg.shmem.spf_addr;
+		rw_done_payload.buff.addr = (uint8_t *)(gsl_buff->gsl_msg.shmem.v_addr) +
+			offset;
+		rw_done_payload.buff.size = gsl_buff->size_from_spf;
+
+		/* issue the callback to client */
+		/* note client must copy in cb context */
+		ev.event_payload = &rw_done_payload;
+		ev.event_payload_size = sizeof(struct gsl_event_read_write_done_payload);
+		ev.source_module_id = GSL_EVENT_SRC_MODULE_ID_GSL;
+		if (cb)
+			cb(&ev, client_data);
+	}
+exit:
+	return;
 }
