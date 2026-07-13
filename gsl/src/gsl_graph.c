@@ -1083,6 +1083,12 @@ static int32_t gsl_graph_send_persist_cal(struct gsl_graph *graph,
 				goto cleanup;
 			}
 			sg->num_proc_ids = rsp.sg_proc_ids->num_proc_ids;
+			if (sg->num_proc_ids > AR_SUB_SYS_ID_LAST) {
+				GSL_ERR("num_proc_ids %d exceeds max array size %d",
+				sg->num_proc_ids, AR_SUB_SYS_ID_LAST);
+				rc = AR_EBADPARAM;
+				goto cleanup;
+			}
 			GSL_DBG("num procs - %d", sg->num_proc_ids);
 			for (int procid = 0; procid < sg->num_proc_ids; procid++) {
 				sg->persist_cal_data_per_proc[procid].proc_id = rsp.sg_proc_ids->proc_ids[procid];
