@@ -178,7 +178,6 @@ int32_t gsl_global_persist_cal_pool_remove(struct gsl_glbl_persist_cal *gpc)
 		 * Do not free if we fail to remove from list, to preserve the
 		 * integrity of the linked list
 		 */
-		gsl_gp_cal_deinit(gpc);
 		gsl_mem_free(gpc);
 	}
 exit:
