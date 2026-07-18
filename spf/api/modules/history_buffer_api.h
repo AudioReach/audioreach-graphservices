@@ -36,26 +36,38 @@
 /* History buffer has a control port which can be connected to other modules, which
    expects the FTRT data info or any other information from History Buffer.
    */
-#define HISTORY_BUFFER_MAX_CONTROL_PORTS                 ( 1 )
+#define HISTORY_BUFFER_MAX_CONTROL_PORTS                  ( 1 )
 
-#define HISTORY_BUFFER_MAX_INTENTS_PER_CTRL_PORT         ( 1 )
+#define HISTORY_BUFFER_MAX_INTENTS_PER_CTRL_PORT                 ( 1 )
 
 /* Stack size requirement(in bytes) is a static module property. It is the peak stack memory
    requirement of the module. This is accounted only for the module, do not have to include
    framework requirement.*/
-#define HISTORY_BUFFER_STACK_SIZE_REQUIREMENT            4096 /* Bytes */
+#define HISTORY_BUFFER_STACK_SIZE_REQUIREMENT             4096 /* Bytes */
 
 /*==============================================================================
    Param ID
 ==============================================================================*/
 
 /* Parameter to trigger the detection event */
-#define PARAM_ID_HISTORY_BUFFER_DETECTION_TRIGGER        0x08001B7E
+#define PARAM_ID_HISTORY_BUFFER_DETECTION_TRIGGER                   0x08001B7E
 
 /**@h2xmlp_emptyParameter {"PARAM_ID_HISTORY_BUFFER_DETECTION_TRIGGER",
                            PARAM_ID_HISTORY_BUFFER_DETECTION_TRIGGER}
     @h2xmlp_description   {Sets the History buffer parameter to trigger the
                            new detection event.}
+    @h2xmlp_toolPolicy    {NO_SUPPORT} */
+
+/* Parameter to trigger force drain of partial batch in batching mode */
+#define PARAM_ID_HISTORY_BUFFER_FORCE_DRAIN_BATCH                   0x08001BF1
+
+/**@h2xmlp_emptyParameter {"PARAM_ID_HISTORY_BUFFER_FORCE_DRAIN_BATCH",
+                           PARAM_ID_HISTORY_BUFFER_FORCE_DRAIN_BATCH}
+    @h2xmlp_description   {Forces History buffer to drain the current partial batch
+                           in batching mode. This triggers DAM to drain whatever data
+                           is buffered up to that point, then automatically return to
+                           regular batching behavior. A drain-complete event is raised
+                           once the partial batch has been drained.}
     @h2xmlp_toolPolicy    {NO_SUPPORT} */
 
 /*Parameter to configure the Streaming mode requirement in History Buffer Module*/
@@ -108,7 +120,7 @@ struct param_id_history_buffer_mode_t
 ------------------------------------------------------------------------------*/
 
 /* History Buffer module ID */
-#define MODULE_ID_HISTORY_BUFFER                         0x07001182
+#define MODULE_ID_HISTORY_BUFFER                   0x07001182
 
 /**
     @h2xmlm_module      {"MODULE_ID_HISTORY_BUFFER", MODULE_ID_HISTORY_BUFFER}
@@ -159,6 +171,9 @@ struct param_id_history_buffer_mode_t
     @h2xmlm_InsertParameter
 
     @h2xml_Select               {PARAM_ID_HISTORY_BUFFER_DETECTION_TRIGGER}
+    @h2xmlm_InsertParameter
+
+    @h2xml_Select               {PARAM_ID_HISTORY_BUFFER_FORCE_DRAIN_BATCH}
     @h2xmlm_InsertParameter
 
     @h2xml_Select               {param_id_history_buffer_mode_t}
