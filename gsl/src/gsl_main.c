@@ -505,6 +505,7 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 	struct gsl_graph *graph;
 	bool_t master_proc_ssr = gsl_mdf_utils_is_master_proc(spf_ss_mask);
 	uint32_t master_proc = gsl_mdf_utils_get_master_proc_id(spf_ss_mask);
+	bool_t fire_dn, fire_up;
 
 	/*
 	 * Invalid subsystem mask.
@@ -588,9 +589,11 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 		ar_err_det_reset_ctxt(master_proc);
 
 		/* issue callback to client */
-		if (gsl_ctxt.global_cb)
-			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_DN, &client_pld,
-			sizeof(client_pld), gsl_ctxt.global_cb_client_data);
+		fire_dn = gsl_spf_ss_state_fire_dn_event(master_proc, spf_ss_mask);
+		if (fire_dn && gsl_ctxt.global_cb)
+			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_DN,
+				&client_pld, sizeof(client_pld),
+				gsl_ctxt.global_cb_client_data);
 		/* free the handle_list memory  */
 		if (client_pld.handle_list)
 			gsl_mem_free(client_pld.handle_list);
@@ -602,9 +605,10 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 		}
 
 		/* issue callback to client */
-		if (gsl_ctxt.global_cb)
-			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_UP, NULL, 0,
-			gsl_ctxt.global_cb_client_data);
+		fire_up = gsl_spf_ss_state_fire_up_event(master_proc, spf_ss_mask);
+		if (fire_up && gsl_ctxt.global_cb)
+			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_UP,
+				NULL, 0, gsl_ctxt.global_cb_client_data);
 	}
 }
 

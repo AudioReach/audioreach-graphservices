@@ -45,6 +45,16 @@ struct gsl_spf_ss_state {
 	 * callback invoked whenever there is an SSR up or down event
 	 */
 	gsl_spf_ss_cb_t ssr_cb;
+	/*
+	 * TRUE while an SSR cycle is in progress for this proc group;
+	 * set on first DN, cleared when all subsystems have recovered
+	 */
+	bool_t in_ssr;
+	/*
+	 * accumulates UP ss_mask bits within the current SSR cycle;
+	 * reset at the start of each new SSR cycle (first DN event)
+	 */
+	uint32_t ssr_up_mask;
 };
 
 /*
@@ -400,5 +410,69 @@ uint32_t gsl_spf_ss_state_get(uint32_t master_proc)
 	if (_spf_cluster_ss_state[master_proc] != NULL)
 		return _spf_cluster_ss_state[master_proc]->ss_state_flags;
 	return AR_EOK;
+}
+
+bool_t gsl_spf_ss_state_fire_dn_event(uint32_t master_proc, uint32_t ss_mask)
+{
+	bool_t fire_dn;
+	struct gsl_spf_ss_state *cluster;
+
+	if (master_proc <= AR_SUB_SYS_ID_INVALID ||
+	    master_proc > AR_SUB_SYS_ID_LAST)
+		return FALSE;
+
+	cluster = _spf_cluster_ss_state[master_proc];
+	if (!cluster)
+		return FALSE;
+
+	GSL_MUTEX_LOCK(cluster->lock);
+	fire_dn = !cluster->in_ssr;
+	cluster->in_ssr = TRUE;
+	/*
+	 * Only the first DN of a new SSR cycle fires the callback (fire_dn==TRUE).
+	 * Subsequent DNs from other subsystems in the same cycle are swallowed
+	 * because in_ssr is already TRUE, so clients see exactly one DN event
+	 * per SSR cycle regardless of how many subsystems go down.
+	 * On first DN, reset ssr_up_mask so stale bits from any previous partial
+	 * recovery do not carry over into the new cycle.
+	 */
+	if (fire_dn) {
+		cluster->ssr_up_mask = 0;
+	}
+	GSL_MUTEX_UNLOCK(cluster->lock);
+
+	GSL_DBG("SS DOWN: master_proc %d ss_mask 0x%x fire %d",
+		master_proc, ss_mask, fire_dn);
+	return fire_dn;
+}
+
+bool_t gsl_spf_ss_state_fire_up_event(uint32_t master_proc, uint32_t ss_mask)
+{
+	bool_t fire_up;
+	uint32_t up_mask, full_mask;
+	struct gsl_spf_ss_state *cluster;
+
+	if (master_proc <= AR_SUB_SYS_ID_INVALID ||
+	    master_proc > AR_SUB_SYS_ID_LAST)
+		return FALSE;
+
+	cluster = _spf_cluster_ss_state[master_proc];
+	if (!cluster)
+		return FALSE;
+
+	GSL_MUTEX_LOCK(cluster->lock);
+	cluster->ssr_up_mask |= ss_mask;
+	up_mask = cluster->ssr_up_mask;
+	full_mask = cluster->ss_supported_flags;
+	fire_up = (up_mask == full_mask);
+	if (fire_up) {
+		cluster->in_ssr = FALSE;
+		cluster->ssr_up_mask = 0;
+	}
+	GSL_MUTEX_UNLOCK(cluster->lock);
+
+	GSL_DBG("SS UP: master_proc %d ss_mask 0x%x up_mask 0x%x full_mask 0x%x fire %d",
+		master_proc, ss_mask, up_mask, full_mask, fire_up);
+	return fire_up;
 }
 
