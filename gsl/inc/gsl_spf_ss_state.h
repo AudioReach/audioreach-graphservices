@@ -63,5 +63,21 @@ uint32_t gsl_spf_ss_state_get(uint32_t master_proc);
  */
 bool_t gsl_spf_ss_state_is_ss_supported(uint32_t master_proc, uint32_t proc_id);
 
+/*
+ * Called on each subsystem DN event. Returns TRUE if the DN callback
+ * should be fired — only on the first DN of a new SSR cycle.
+ * \param[in] master_proc: SPF master proc id
+ * \param[in] ss_mask: bitmask of the subsystem that went down
+ */
+bool_t gsl_spf_ss_state_fire_dn_event(uint32_t master_proc, uint32_t ss_mask);
+
+/*
+ * Called on each subsystem UP event. Returns TRUE if the UP callback
+ * should be fired — only when all subsystems in the group have recovered.
+ * \param[in] master_proc: SPF master proc id
+ * \param[in] ss_mask: bitmask of the subsystem that came up
+ */
+bool_t gsl_spf_ss_state_fire_up_event(uint32_t master_proc, uint32_t ss_mask);
+
 #endif /* GSL_SPF_SS_STATE_H */
 
