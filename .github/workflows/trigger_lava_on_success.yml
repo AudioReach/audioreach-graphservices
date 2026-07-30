@@ -13,6 +13,31 @@ permissions:
   pull-requests: write
 
 jobs:
+  create_pending_check:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      check_run_id: ${{ steps.create.outputs.check_run_id }}
+    steps:
+      - name: Create pending LAVA check run on PR commit
+        id: create
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'LAVA Hardware Tests',
+              head_sha: context.payload.workflow_run.head_sha,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+              output: {
+                title: 'LAVA Tests Running',
+                summary: 'Hardware tests are running on LAVA infrastructure. Merge is blocked until tests complete.'
+              }
+            });
+            core.setOutput('check_run_id', String(data.id));
+
   prepare_matrix:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -93,3 +118,28 @@ jobs:
       build_matrix: ${{ needs.prepare_matrix.outputs.test_matrix }}
       build_urls: ${{ needs.prepare_matrix.outputs.build_urls }}
 
+  report_final_status:
+    needs: [create_pending_check, trigger_lava]
+    if: always() && needs.create_pending_check.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update LAVA check run with final result
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const lavaResult = '${{ needs.trigger_lava.result }}';
+            const isSuccess = lavaResult === 'success';
+
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ needs.create_pending_check.outputs.check_run_id }}'),
+              status: 'completed',
+              conclusion: isSuccess ? 'success' : 'failure',
+              completed_at: new Date().toISOString(),
+              output: {
+                title: isSuccess ? 'LAVA Tests Passed' : 'LAVA Tests Failed',
+                summary: `Hardware tests ${isSuccess ? 'completed successfully' : `failed (status: ${lavaResult})`}.`,
+                text: `Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+              }
+            });
