@@ -70,6 +70,16 @@ int32_t ar_shmem_get_uid(uint64_t alloc_handle, uint64_t *uid)
     return AR_EUNSUPPORTED;
 }
 
+int32_t ar_shmem_sync_for_device(ar_shmem_info *info)
+{
+	return are_on_apps ? AR_EOK : ar_shmem_dsp_sync_for_device(info);
+}
+
+int32_t ar_shmem_sync_for_cpu(ar_shmem_info *info)
+{
+	return are_on_apps ? AR_EOK : ar_shmem_dsp_sync_for_cpu(info);
+}
+
 int32_t ar_shmem_deinit(void)
 {
     int32_t rc = are_on_apps ? ar_shmem_ap_deinit() : ar_shmem_dsp_deinit();

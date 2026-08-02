@@ -80,6 +80,72 @@ static ar_shmem_pdata_t *pdata = NULL;
 
 static pthread_mutex_t ar_shmem_lock = PTHREAD_MUTEX_INITIALIZER;
 
+static int32_t ar_shmem_dsp_sync_dma_buf(ar_shmem_info *info,
+	uint64_t sync_flags, bool cpu_access)
+{
+	int32_t status = AR_EOK;
+	ar_shmem_handle_data_t *shmem_handle = NULL;
+	struct dma_buf_sync sync;
+
+	memset(&sync, 0, sizeof(sync));
+
+	pthread_mutex_lock(&ar_shmem_lock);
+
+	if (pdata == NULL) {
+		AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "%s:not in init state\n", __func__);
+		status = AR_EBADPARAM;
+		goto end;
+	}
+
+	if (info == NULL || info->metadata == 0) {
+		AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,
+			"%s:invalid info %pK metadata 0x%llx\n",
+			__func__, info, info ? (unsigned long long)info->metadata : 0);
+		status = AR_EBADPARAM;
+		goto end;
+	}
+
+	shmem_handle = (ar_shmem_handle_data_t *)(intptr_t)info->metadata;
+	if (shmem_handle == NULL || shmem_handle->heap_fd < 0) {
+		AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,
+			"%s:invalid shmem handle %pK fd %d\n",
+			__func__, shmem_handle, shmem_handle ? shmem_handle->heap_fd : -1);
+		status = AR_EBADPARAM;
+		goto end;
+	}
+
+	if (shmem_handle->dma_sync_flag == cpu_access)
+		goto end;
+
+	sync.flags = sync_flags;
+	status = ioctl(shmem_handle->heap_fd, DMA_BUF_IOCTL_SYNC, &sync);
+	if (status) {
+		AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,
+			"%s: DMA heap sync failed, errno: %d status:%d\n",
+			__func__, errno, status);
+		status = AR_EUNEXPECTED;
+		goto end;
+	}
+
+	shmem_handle->dma_sync_flag = cpu_access;
+
+end:
+	pthread_mutex_unlock(&ar_shmem_lock);
+	return status;
+}
+
+int32_t ar_shmem_dsp_sync_for_device(ar_shmem_info *info)
+{
+	return ar_shmem_dsp_sync_dma_buf(info,
+		DMA_BUF_SYNC_END | DMA_BUF_SYNC_RW, false);
+}
+
+int32_t ar_shmem_dsp_sync_for_cpu(ar_shmem_info *info)
+{
+	return ar_shmem_dsp_sync_dma_buf(info,
+		DMA_BUF_SYNC_START | DMA_BUF_SYNC_RW, true);
+}
+
 /**
  * \brief ar_shmem_validate_sys_id
  *       internal function to validate supported SYS IDs.

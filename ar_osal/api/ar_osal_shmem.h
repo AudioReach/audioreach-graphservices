@@ -284,6 +284,30 @@ int32_t ar_shmem_hyp_assign_phys(ar_shmem_hyp_assign_phys_info *info);
 int32_t ar_shmem_get_uid(uint64_t alloc_handle, uint64_t *uid);
 
 /**
+ * \brief End CPU access for a DMA-BUF-backed shared memory buffer.
+ *
+ * The dma-buf exporter may perform CPU cache maintenance before device access.
+ *
+ * \param[in] info: pointer to ar_shmem_info returned by ar_shmem_alloc().
+ * \return
+ *  0 -- Success
+ *  Nonzero -- Failure
+ */
+int32_t ar_shmem_sync_for_device(ar_shmem_info *info);
+
+/**
+ * \brief Start CPU access for a DMA-BUF-backed shared memory buffer.
+ *
+ * The dma-buf exporter may perform CPU cache maintenance before CPU reads or writes.
+ *
+ * \param[in] info: pointer to ar_shmem_info returned by ar_shmem_alloc().
+ * \return
+ *  0 -- Success
+ *  Nonzero -- Failure
+ */
+int32_t ar_shmem_sync_for_cpu(ar_shmem_info *info);
+
+/**
  * \brief ar_shmem_deinit.
  *
  * \return
@@ -297,4 +321,3 @@ int32_t ar_shmem_deinit(void);
 #endif /*__cplusplus*/
 
 #endif /* #ifndef AR_OSAL_SHMEM_H */
-
