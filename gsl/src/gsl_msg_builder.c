@@ -104,6 +104,14 @@ int32_t gsl_msg_alloc_ext(uint32_t opcode, uint32_t src_port,
 					oob_payload_size);
 				goto exit;
 			}
+			rc = gsl_shmem_sync_for_cpu(&msg->shmem);
+			if (rc) {
+				__gpr_cmd_free(msg->gpr_packet);
+				gsl_shmem_free(&msg->shmem);
+				GSL_ERR("Failed to sync shared mem for cpu size %d rc %d",
+					oob_payload_size, rc);
+				goto exit;
+			}
 		}
 		msg->payload = msg->shmem.v_addr;
 	}

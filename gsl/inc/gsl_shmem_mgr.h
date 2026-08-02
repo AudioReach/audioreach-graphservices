@@ -90,6 +90,10 @@ int32_t gsl_shmem_map_dynamic_pd(struct gsl_shmem_alloc_data *alloc_data,
 	uint32_t flags, uint32_t ss_mask, uint32_t master_proc_id);
 int32_t gsl_shmem_unmap_dynamic_pd(struct gsl_shmem_alloc_data *alloc_data,
 	uint32_t ss_mask, uint32_t master_proc_id);
+int32_t gsl_shmem_sync_for_device(
+		const struct gsl_shmem_alloc_data *alloc_data);
+int32_t gsl_shmem_sync_for_cpu(
+		const struct gsl_shmem_alloc_data *alloc_data);
 void gsl_shmem_cache_pending_memmap_packets(uint32_t master_proc_id, void *gpr_packet);
 uint32_t gsl_shmem_check_and_unmap_cache_pending_packets(uint32_t master_proc_id);
 

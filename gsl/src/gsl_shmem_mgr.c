@@ -1217,6 +1217,30 @@ exit:
 	return rc;
 }
 
+int32_t gsl_shmem_sync_for_device(
+	const struct gsl_shmem_alloc_data *alloc_data)
+{
+	struct gsl_shmem_page *page;
+
+	if (!alloc_data || !alloc_data->handle)
+		return AR_EBADPARAM;
+
+	page = alloc_data->handle;
+	return ar_shmem_sync_for_device(&page->shmem_info);
+}
+
+int32_t gsl_shmem_sync_for_cpu(
+	const struct gsl_shmem_alloc_data *alloc_data)
+{
+	struct gsl_shmem_page *page;
+
+	if (!alloc_data || !alloc_data->handle)
+		return AR_EBADPARAM;
+
+	page = alloc_data->handle;
+	return ar_shmem_sync_for_cpu(&page->shmem_info);
+}
+
 int32_t gsl_shmem_free(struct gsl_shmem_alloc_data *alloc_data)
 {
 	struct gsl_shmem_page *page;
