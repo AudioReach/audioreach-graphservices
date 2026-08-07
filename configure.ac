@@ -97,6 +97,12 @@ AC_ARG_WITH([audio_dma_support],
     [with_audio_dma_support=no])
 AM_CONDITIONAL([AUDIO_DMA_SUPPORT], [test "x${with_audio_dma_support}" = "xyes"])
 
+AC_ARG_WITH([mdsp-proc],
+    AS_HELP_STRING([--with-mdsp-proc],[Enable MDSP processor support (default is no)]),
+    [with_mdsp_proc=$withval],
+    [with_mdsp_proc=no])
+AM_CONDITIONAL([MDSP_PROC], [test "x${with_mdsp_proc}" = "xyes"])
+
 AC_ARG_WITH([libdiag_headers],
     AS_HELP_STRING([--with-libdiag_headers],[use libdiag headers only (default is no)]),
     [with_libdiag_headers=$withval],

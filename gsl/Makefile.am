@@ -65,6 +65,10 @@ libar_gsl_la_SOURCES = $(gsl_c_sources)
 libar_gsl_la_CFLAGS = $(AM_CFLAGS)
 libar_gsl_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
 
+if MDSP_PROC
+libar_gsl_la_CFLAGS += -DMDSP_PROC
+endif
+
 if USES_ATS_DATA_LOGGING
 libar_gsl_la_CFLAGS += -DATS_DATA_LOGGING
 libar_gsl_la_CPPFLAGS = -DATS_DATA_LOGGING
