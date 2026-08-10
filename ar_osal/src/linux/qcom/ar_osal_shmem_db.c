@@ -348,31 +348,52 @@ int32_t ar_shmem_dsp_init(void)
 #ifdef AR_OSAL_USE_CUTILS
     pdata->dmabuf_cma_mem_enabled =
         property_get_bool("vendor.audio.feature.dmabuf.cma.memory.enable", false);
-#endif
     if(pdata->dmabuf_cma_mem_enabled) {
         /*Check if dma_buf heap initialize the dmabuf_handle to invalid handle */
         pdata->dmabuf_fd_cma = open(DMABUF_SYS_HEAP_PATH_CMA, O_RDONLY | O_CLOEXEC);
-        if (pdata->dmabuf_fd_cma <= 0) {
-          AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:dmabuf fd cma dev open failed errno:%d\n",
-            __func__, pdata->dmabuf_fd_cma);
-          status = AR_ENOTEXIST;
-          close(pdata->armem_fd);
-          close(pdata->dmabuf_fd);
-          goto end;
+        if (pdata->dmabuf_fd_cma < 0) {
+            AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:dmabuf fd cma dev open failed errno:%d\n",
+              __func__, pdata->dmabuf_fd_cma);
+            status = AR_ENOTEXIST;
+            close(pdata->armem_fd);
+            close(pdata->dmabuf_fd);
+            free(pdata);
+            pdata = NULL;
+            goto end;
         }
 
         pdata->armem_fd_cma = open(AR_MEM_DRIVER_PATH_CMA, O_RDWR);
-        if (pdata->armem_fd_cma <= 0) {
-          status = AR_ENOTEXIST;
-          AR_LOG_ERR("%s armem fd cma open failed %s status %d\n",
-            __func__, AR_MEM_DRIVER_PATH_CMA, status);
-          close(pdata->armem_fd);
-          close(pdata->dmabuf_fd);
-          close(pdata->dmabuf_fd_cma);
-          goto end;
+        if (pdata->armem_fd_cma < 0) {
+            AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:armem fd cma open failed %s\n",
+              __func__, AR_MEM_DRIVER_PATH_CMA);
+            status = AR_ENOTEXIST;
+            close(pdata->armem_fd);
+            close(pdata->dmabuf_fd);
+            close(pdata->dmabuf_fd_cma);
+            free(pdata);
+            pdata = NULL;
+            goto end;
         }
-
     }
+#else
+    pdata->dmabuf_cma_mem_enabled = false;
+    pdata->dmabuf_fd_cma = open(DMABUF_SYS_HEAP_PATH_CMA, O_RDONLY | O_CLOEXEC);
+    if (pdata->dmabuf_fd_cma < 0) {
+        AR_LOG_INFO(AR_OSAL_SHMEM_LOG_TAG,"%s:CMA dmabuf unavailable, continuing without CMA\n",
+          __func__);
+        pdata->dmabuf_fd_cma = -1;
+    } else {
+        pdata->armem_fd_cma = open(AR_MEM_DRIVER_PATH_CMA, O_RDWR);
+        if (pdata->armem_fd_cma < 0) {
+            AR_LOG_INFO(AR_OSAL_SHMEM_LOG_TAG,"%s:CMA mem driver unavailable, continuing without CMA\n",
+            __func__);
+            close(pdata->dmabuf_fd_cma);
+            pdata->dmabuf_fd_cma = -1;
+        } else {
+            pdata->dmabuf_cma_mem_enabled = true;
+        }
+    }
+#endif
 
  end:
     pthread_mutex_unlock(&ar_shmem_lock);
@@ -439,21 +460,31 @@ int32_t ar_shmem_dsp_alloc(_Inout_ ar_shmem_info *info)
     heap_data.fd_flags = O_RDWR;
 
     if (((info->flags) & (1 << AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) && pdata->dmabuf_cma_mem_enabled) {
-        status = ioctl(pdata->dmabuf_fd_cma, DMA_HEAP_IOCTL_ALLOC, &heap_data);
-        if (status) {
-          AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s: DMA heap alloc failed, errno: %d\n",
-             __func__, status);
-          status = AR_ENOMEMORY;
-          goto end;
+        if (pdata->dmabuf_fd_cma >= 0) {
+            status = ioctl(pdata->dmabuf_fd_cma, DMA_HEAP_IOCTL_ALLOC, &heap_data);
+            if (status) {
+                AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s: DMA heap alloc failed, errno: %d\n",
+                   __func__, status);
+                status = AR_ENOMEMORY;
+                free(shmem_handle);
+                goto end;
+            }
+        } else {
+            AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s: CMA dmabuf fd unavailable, cannot alloc CMA memory\n",
+                  __func__);
+                status = AR_ENOTEXIST;
+                free(shmem_handle);
+                goto end;
         }
     }
     else {
         status = ioctl(pdata->dmabuf_fd, DMA_HEAP_IOCTL_ALLOC, &heap_data);
         if (status) {
-          AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s: DMA heap alloc failed, errno: %d\n",
-             __func__, status);
-          status = AR_ENOMEMORY;
-          goto end;
+            AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s: DMA heap alloc failed, errno: %d\n",
+               __func__, status);
+            status = AR_ENOMEMORY;
+            free(shmem_handle);
+            goto end;
         }
     }
 
@@ -798,10 +829,17 @@ int32_t ar_shmem_dsp_hyp_assign_phys(ar_shmem_hyp_assign_phys_info *info)
                       shmem_handle->dma_sync_flag = false;
                     }
                     AR_LOG_VERBOSE(AR_OSAL_SHMEM_LOG_TAG,"%s:IOCTL_MAP_HYP_ASSIGN\n", __func__);
-                    status = ioctl(pdata->armem_fd_cma, IOCTL_MAP_HYP_ASSIGN, shm_addr_lsw);
-                    if (status) {
-                        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:hyp_assign failed. status %d\n",
-                         __func__, status);
+                    if (pdata->armem_fd_cma >= 0) {
+                        status = ioctl(pdata->armem_fd_cma, IOCTL_MAP_HYP_ASSIGN, shm_addr_lsw);
+                        if (status) {
+                            AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:hyp_assign failed. status %d\n",
+                             __func__, status);
+                        }
+                    } else {
+                        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:armem_fd_cma unavailable for hyp_assign\n",
+                            __func__);
+                        status = AR_ENOTEXIST;
+                        goto end;
                     }
                 } else {
                     AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:invalid params handle \n", __func__);
@@ -810,11 +848,16 @@ int32_t ar_shmem_dsp_hyp_assign_phys(ar_shmem_hyp_assign_phys_info *info)
                 }
             } else {
                 AR_LOG_VERBOSE(AR_OSAL_SHMEM_LOG_TAG,"%s:IOCTL_UNMAP_HYP_ASSIGN\n", __func__);
-                status = ioctl(pdata->armem_fd_cma, IOCTL_UNMAP_HYP_ASSIGN, shm_addr_lsw);
-
-                if (status) {
-                     AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:unmap_hyp_assign failed. status %d\n",
-                         __func__, status);
+                if (pdata->armem_fd_cma >= 0) {
+                    status = ioctl(pdata->armem_fd_cma, IOCTL_UNMAP_HYP_ASSIGN, shm_addr_lsw);
+                    if (status) {
+                         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:unmap_hyp_assign failed. status %d\n",
+                             __func__, status);
+                    }
+                } else {
+                    AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:armem_fd_cma unavailable for unmap_hyp_assign\n",
+                        __func__);
+                    status = AR_ENOTEXIST;
                 }
             }
          }

@@ -20,7 +20,7 @@
 #include <sys/ioctl.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-heap.h>
-#include "msm_audio.h"
+#include <linux/msm_audio.h>
 #include "ar_osal_shmem.h"
 #include "ar_osal_error.h"
 #include "ar_osal_log.h"
@@ -267,6 +267,22 @@ int32_t ar_shmem_init(void)
  end:
     pthread_mutex_unlock(&ar_shmem_lock);
     return status;
+}
+
+/**
+ * \brief Initialize the shared memory interface using a list of processor
+ *        domains (V2 API).
+ *
+ * \param[in] num_master_procs   Number of processor domain IDs.
+ * \param[in] master_procs       Pointer to an array of processor domain IDs.
+ *
+ * \return
+ *  0        -- Success
+ *  Nonzero  -- Failure
+ */
+int32_t ar_shmem_init_v2(uint32_t num_master_procs, uint32_t *master_procs)
+{
+    return AR_EOK;
 }
 
 /*

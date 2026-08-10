@@ -272,6 +272,25 @@ void gsl_dls_client_set_used_buffers(struct gsl_dls_ready_buffer_index_list_t *b
     //Store used buffers in gsl dsl client context
     gsl_memcpy(&dls_client_ctxt.used_buffers, sizeof(dls_client_ctxt.used_buffers), buffer_index_list,
                 sizeof(dls_client_ctxt.used_buffers));
+
+    /*
+     * Mark each consumed buffer as UNAVAILABLE in shared memory before
+     * signalling the return thread. This prevents the next
+     * gsl_dls_client_get_ready_dls_buffer_list() scan from picking up
+     * a buffer that the client has already read but not yet returned to
+     * the DSP, closing the TOCTOU window where buf_state still reads
+     * READY(3) on the next commit event.
+     */
+    for (uint16_t i = 0; i < buffer_index_list->buffer_count; i++) {
+        uint32_t offset = buffer_index_list->buffer_index_list[i] *
+                          dls_client_ctxt.buffer_pool_config.buffer_size;
+        dls_buf_hdr_t *hdr = (dls_buf_hdr_t *)(
+                          (uint8_t *)dls_client_ctxt.dls_shmem.v_addr + offset);
+        hdr->buf_state = (dls_buf_state_t)DLS_BUF_UNAVAILABLE;
+        GSL_DBG("DLS: buf[%u] marked UNAVAILABLE(0) after client read",
+                buffer_index_list->buffer_index_list[i]);
+    }
+
 }
 
 int32_t gsl_dls_client_return_used_buffers(struct gsl_dls_ready_buffer_index_list_t *buffer_index_list)
