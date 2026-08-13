@@ -26,6 +26,7 @@
 #include "gsl_subgraph_pool.h"
 #include "gsl_common.h"
 #include "gsl_msg_builder.h"
+#include "gsl_shmem_mgr.h"
 #include "gsl_spf_ss_state.h"
 #include "gsl_mdf_utils.h"
 
@@ -42,6 +43,22 @@ struct gsl_blob {
 	uint32_t size; /**< size of the blob */
 	void *buf; /**< pointer to the blob */
 };
+
+static int32_t gsl_msg_sync_oob_for_device(gsl_msg_t *msg)
+{
+	if (!msg || !msg->shmem.handle)
+		return AR_EOK;
+
+	return gsl_shmem_sync_for_device(&msg->shmem);
+}
+
+static int32_t gsl_msg_sync_oob_for_cpu(gsl_msg_t *msg)
+{
+	if (!msg || !msg->shmem.handle)
+		return AR_EOK;
+
+	return gsl_shmem_sync_for_cpu(&msg->shmem);
+}
 
 /* Used to return tags and module info data sorted by processor id to client */
 struct gsl_module_id_proc_info_entry {
@@ -544,6 +561,10 @@ static int32_t gsl_apm_config_oob(struct gsl_graph *graph,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header), gsl_msg.payload,
 		payload_size);
 
+	rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+	if (rc)
+		goto free_msg;
+
 	rc = gsl_send_spf_cmd(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP2_CMD_SIG], &rsp_pkt);
 	if (rc) {
@@ -552,6 +573,10 @@ static int32_t gsl_apm_config_oob(struct gsl_graph *graph,
 	}
 
 	if (opcode == APM_CMD_GET_CFG) {
+		rc = gsl_msg_sync_oob_for_cpu(&gsl_msg);
+		if (rc)
+			goto free_msg;
+
 		get_cfg_rsp = GPR_PKT_GET_PAYLOAD(struct apm_cmd_rsp_get_cfg_t,
 			rsp_pkt);
 		/*
@@ -880,6 +905,10 @@ static int32_t gsl_graph_send_nonpersist_cal(struct gsl_graph *graph,
 	GSL_LOG_PKT("send_pkt", graph->src_port, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header),	gsl_msg.payload,
 		cmd_header->payload_size);
+
+	rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+	if (rc)
+		goto exit;
 
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP2_CMD_SIG]);
@@ -2408,12 +2437,17 @@ static int32_t gsl_graph_close_sgids_and_connections(struct gsl_graph *graph,
 			sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header), gsl_msg.payload,
 			close_pld_size);
 
+		rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+		if (rc)
+			goto free_msg;
+
 		rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 			&graph->graph_signal[GRAPH_CTRL_GRP3_CMD_SIG]);
 		if (rc)
 			GSL_ERR("Graph close failed:%d", rc);
 	}
 
+free_msg:
 	gsl_msg_free(&gsl_msg);
 
 exit:
@@ -3234,6 +3268,10 @@ static int32_t gsl_graph_open_sgids_and_connections(struct gsl_graph *graph,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*open_cmd), gsl_msg.payload,
 		graph_open_size);
 
+	rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+	if (rc)
+		goto free_gsl_msg;
+
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP1_CMD_SIG]);
 	if (rc) {
@@ -3793,6 +3831,10 @@ int32_t gsl_graph_set_config(struct gsl_graph *graph,
 	GSL_LOG_PKT("send_pkt", graph->src_port, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header),	gsl_msg.payload,
 		cmd_header->payload_size);
+	rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+	if (rc)
+		goto free_msg;
+
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP2_CMD_SIG]);
 	if (rc)
@@ -5352,11 +5394,16 @@ int32_t gsl_graph_change_set_config_helper(struct gsl_graph *graph,
 	GSL_LOG_PKT("send_pkt", graph->src_port, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header), gsl_msg.payload,
 		cmd_header->payload_size);
+	rc = gsl_msg_sync_oob_for_device(&gsl_msg);
+	if (rc)
+		goto free_msg;
+
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP2_CMD_SIG]);
 	if (rc)
 		GSL_ERR("Graph set config failed %d", rc);
 
+free_msg:
 	gsl_msg_free(&gsl_msg);
 exit:
 	return rc;
