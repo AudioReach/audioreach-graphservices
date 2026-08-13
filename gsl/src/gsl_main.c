@@ -10,6 +10,7 @@
 #include "gsl_intf.h"
 #include "acdb.h"
 #include "ar_osal_error.h"
+#include "ar_osal_boot.h"
 #include "ar_osal_log.h"
 #include "ar_osal_shmem.h"
 #include "ar_util_list.h"
@@ -703,6 +704,36 @@ void gsl_get_version(uint32_t *major, uint32_t *minor)
 	*minor = GSL_MINOR_VERSION;
 }
 
+static int32_t gsl_send_close_all(uint32_t master_proc_id)
+{
+	gpr_cmd_alloc_ext_t gpr_args = {0};
+	gpr_packet_t *send_pkt = NULL;
+	int32_t rc;
+
+	GSL_INFO("gsl_send_close_all: sending APM_CMD_CLOSE_ALL to proc %d", master_proc_id);
+
+	gpr_args.src_domain_id = GPR_IDS_DOMAIN_ID_APPS_V;
+	gpr_args.dst_domain_id = (uint8_t)master_proc_id;
+	gpr_args.src_port = GSL_MAIN_SRC_PORT;
+	gpr_args.dst_port = APM_MODULE_INSTANCE_ID;
+	gpr_args.opcode = APM_CMD_CLOSE_ALL;
+	gpr_args.token = 0;
+	gpr_args.client_data = 0;
+	gpr_args.payload_size = 0;
+	gpr_args.ret_packet = &send_pkt;
+
+	rc = __gpr_cmd_alloc_ext(&gpr_args);
+	if (rc) {
+		GSL_ERR("gsl_send_close_all: pkt alloc failed proc %d rc %d", master_proc_id, rc);
+		return rc;
+	}
+
+	GSL_INFO("gsl_send_close_all: pkt allocated, waiting for SPF rsp proc %d", master_proc_id);
+	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&send_pkt, &gsl_ctxt.rsp_signal);
+	GSL_INFO("gsl_send_close_all: APM_CMD_CLOSE_ALL proc %d done rc %d", master_proc_id, rc);
+	return rc;
+}
+
 static int32_t gsl_do_spf_readiness_check(
 	uint32_t max_num_ready_checks, uint32_t ready_check_interval_ms,
 	uint32_t proc_id)
@@ -879,6 +910,7 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	uint32_t num_procs = 0;
 	struct proc_domain_type *proc_domains = NULL;
 	bool_t is_shmem_supported = TRUE;
+	bool_t is_non_cold_boot;
 	uint32_t dsp_list[AR_SUB_SYS_ID_LAST + 1] = {0};
 	uint32_t num_dsp = 0;
 	uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
@@ -1010,6 +1042,8 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	if (!proc_domains)
 		num_procs = 0;
 
+	is_non_cold_boot = ar_osal_is_non_cold_boot();
+
 	for (i = 0; i < num_master_procs; i++) {
 		/* perform Spf readiness check */
 		rc = gsl_do_spf_readiness_check(init_data->max_num_ready_checks,
@@ -1035,6 +1069,16 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 		if (rc) {
 			GSL_ERR("gsl_send_spf_satellite_info failed %d", rc);
 			goto mdf_utils_deinit;
+		}
+
+		if (is_non_cold_boot) {
+			rc = gsl_send_close_all(master_procs[i]);
+			if (rc) {
+				GSL_ERR("APM_CMD_CLOSE_ALL failed proc %d rc %d",
+					master_procs[i], rc);
+				goto mdf_utils_deinit;
+			}
+			GSL_INFO("APM_CMD_CLOSE_ALL succeeded proc %d", master_procs[i]);
 		}
 
 		rc = gsl_spf_ss_state_init(master_procs[i], tmp_supported_ss_mask,
