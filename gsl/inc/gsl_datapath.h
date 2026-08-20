@@ -20,6 +20,7 @@
 #include "gsl_intf.h"
 #include "gsl_common.h"
 #include "gsl_msg_builder.h"
+#include "hpcm_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,6 +165,8 @@ struct gsl_data_path_info {
 	uint32_t master_proc_id;
 
 	bool_t is_shmem_supported;
+
+	uint32_t module_id;
 };
 
 /**
@@ -354,6 +357,18 @@ int32_t gsl_wait_for_all_buffs_to_be_avail(struct gsl_data_path_info *dp_info);
  */
 
 int32_t gsl_dp_queue_read_buffers_to_spf(struct gsl_data_path_info *dp_info);
+
+/**
+ * \brief handles hpcm buff handling on read/write datapath
+ *
+ * \param[in] datapath: pointer to datapath
+ * \param[in] cb: client callback registered with GSL
+ * \param[in] client_data: pointer to payload for client callback
+ * \param[in] payload: hpcm payload
+ *
+ */
+void gsl_handle_hpcm_buff_done(struct gsl_data_path_info *datapath,
+		gsl_cb_func_ptr cb, void *client_data, void *payload);
 
 #ifdef __cplusplus
 }  /* extern "C" */

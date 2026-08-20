@@ -75,6 +75,7 @@ spf_sources = ./api/apm/apm_api.h \
                 ./api/modules/gate_api.h \
                 ./api/modules/hw_core_api.h \
                 ./api/modules/hw_intf_cmn_api.h \
+                ./api/modules/hpcm_api.h \
                 ./api/modules/i2s_api.h \
                 ./api/modules/imcl_fwk_intent_api.h \
                 ./api/modules/imcl_spm_intent_api.h \
