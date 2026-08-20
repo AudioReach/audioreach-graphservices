@@ -28,11 +28,11 @@
 /** Source port identifier for client shmem communication.*/
 #define GSL_CSHMEM_SRC_PORT 0x2009
 /** Magic word to validate shmem region.GSL*/
-#define GSL_CSHM_MAGIC_WORD  0x47534D
+#define GSL_CSHM_MAGIC_WORD  0x534D
 /** Mask for validating magic word.*/
-#define GSL_MAGIC_WORD_MASK  0xFFFFFF
+#define GSL_CSHM_MAGIC_WORD_MASK  0xFFFF
 /** Bit shift used for cshm index encoding.*/
-#define GSL_CSHM_IDX_SHIFT 24
+#define GSL_CSHM_IDX_SHIFT 16
 
 struct cshm_info {
     /** unique identifier assigned to the shared memory region.*/
@@ -60,7 +60,7 @@ static inline uint8_t to_gsl_cshm_indx(gsl_mem_id_t mem_id)
 
 static inline bool_t is_valid_gsl_mem_id(gsl_mem_id_t mem_id)
 {
-    if (((uintptr_t)mem_id & GSL_MAGIC_WORD_MASK) != GSL_CSHM_MAGIC_WORD) {
+    if (((uintptr_t)mem_id & GSL_CSHM_MAGIC_WORD_MASK) != GSL_CSHM_MAGIC_WORD) {
         return false;
     }
 
