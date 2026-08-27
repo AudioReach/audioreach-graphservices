@@ -361,7 +361,20 @@ static uint32_t gsl_gpr_callback(gpr_packet_t *packet, void *cb_data)
 		ev.source_module_id = packet->src_port;
 		ev.event_payload = (void *)((int8_t *)module_ev +
 			sizeof(struct apm_module_event_t));
-		graph->cb(&ev, graph->client_data);
+		if (EVENT_ID_HPCM_HOST_BUF_DONE == module_ev->event_id){
+			GSL_DBG("EVENT_ID_HPCM_HOST_BUF_DONE event received \n");
+			struct gsl_data_path_info *dp_info = NULL;
+			struct event_id_hpcm_host_buf_done_t *buf_done =
+				(struct event_id_hpcm_host_buf_done_t *)ev.event_payload;
+			if (buf_done->mask & (GSL_DATA_DIR_READ+1)) {
+				dp_info = &graph->read_info;
+			} else if (buf_done->mask & (GSL_DATA_DIR_WRITE+1)) {
+				dp_info = &graph->write_info;
+			}
+			gsl_handle_hpcm_buff_done(dp_info, graph->cb, graph->client_data, ev.event_payload);
+		} else {
+			graph->cb(&ev, graph->client_data);
+		}
 		gpr_rc = __gpr_cmd_free(packet);
 		break;
 	default:
@@ -4014,6 +4027,7 @@ static int32_t gsl_graph_cache_datapath_miid(struct gsl_graph *graph,
 	dp_info->cached_tag = tag;
 	dp_info->master_proc_id =
 		proc_module_info->proc_module_list->proc_domain_id;
+	dp_info->module_id = proc_module_info->proc_module_list->module_entry[0].module_id;
 
 free_module_info:
 	gsl_mem_free(proc_module_info->proc_module_list);
