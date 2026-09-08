@@ -134,12 +134,20 @@ int32_t ar_shmem_init(void)
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:ion dev open failed errno:%d\n", __func__, pdata->ion_handle);
         status = AR_ENOTEXIST;
         free(pdata);
+        pdata = NULL;
         goto end;
     }
     pdata->ion_fd = open(ION_DRIVER_PATH, O_RDWR);
     if (pdata->ion_fd < 0) {
         status = AR_ENOTEXIST;
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s ion fd open failed %s status %d\n", __func__, ION_DRIVER_PATH, status);
+#if TARGET_ION_ABI_VERSION >= 2
+        ion_close(pdata->ion_handle);
+#else
+        close(pdata->ion_handle);
+#endif
+        free(pdata);
+        pdata = NULL;
         goto end;
     }
     AR_LOG_INFO(AR_OSAL_SHMEM_LOG_TAG,"%s ion fd open success %s\n", __func__, ION_DRIVER_PATH);
@@ -149,6 +157,14 @@ int32_t ar_shmem_init(void)
         status = AR_ENOTEXIST;
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s ion fd open failed %s status %d\n",
         __func__, ION_DRIVER_PATH_CMA, status);
+#if TARGET_ION_ABI_VERSION >= 2
+        ion_close(pdata->ion_handle);
+#else
+        close(pdata->ion_handle);
+#endif
+        close(pdata->ion_fd);
+        free(pdata);
+        pdata = NULL;
         goto end;
     }
     AR_LOG_INFO(AR_OSAL_SHMEM_LOG_TAG,"%s ion fd open success %s\n", __func__, ION_DRIVER_PATH_CMA);
@@ -377,7 +393,7 @@ int32_t ar_shmem_free(_In_ ar_shmem_info *info)
     if (status) {
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s:unmap failed. status %d\n", __func__, status);
     }
-    if (shmem_handle->ion_mem_fd) {
+    if (shmem_handle->ion_mem_fd >= 0) {
         close(shmem_handle->ion_mem_fd);
     } else {
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s Invalid ion_mem_fd \n", __func__);
@@ -672,6 +688,7 @@ int32_t ar_shmem_deinit(void)
     pthread_mutex_lock(&ar_shmem_lock);
     if (pdata == NULL) {
         AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,"%s not in init state\n", __func__);
+        pthread_mutex_unlock(&ar_shmem_lock);
         return AR_EOK;
     }
     if (pdata->ion_handle){
