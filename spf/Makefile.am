@@ -156,8 +156,8 @@ asps_includedir = $(includedir)/spf/asps
 asps_include_HEADERS = $(asps_sources)
 
 #LIBRARY for LE apps
-lib_LTLIBRARIES = libar-spfhdrs.la
-libar_spfhdrs_la_CC = @CC@
-libar_spfhdrs_la_SOURCES = $(spf_sources) $(asps_sources)
-libar_spfhdrs_la_CFLAGS = $(AM_CFLAGS)
-libar_spfhdrs_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
+lib_LTLIBRARIES = libaudioreach-spfhdrs.la
+libaudioreach_spfhdrs_la_CC = @CC@
+libaudioreach_spfhdrs_la_SOURCES = $(spf_sources) $(asps_sources)
+libaudioreach_spfhdrs_la_CFLAGS = $(AM_CFLAGS)
+libaudioreach_spfhdrs_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@

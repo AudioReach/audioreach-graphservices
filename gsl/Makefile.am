@@ -58,18 +58,18 @@ gsl_c_sources = ./src/gsl_graph.c \
 lib_includedir = $(includedir)
 lib_include_HEADERS = $(gsl_sources)
 
-lib_LTLIBRARIES = libar-gsl.la
-libar_gsl_la_CC = @CC@
-libar_gsl_la_LIBADD = $(top_builddir)/acdb/libar-acdb.la $(top_builddir)/ar_osal/libar-osal.la $(top_builddir)/ar_util/libar-util.la $(top_builddir)/spf/libar-spfhdrs.la $(top_builddir)/gpr/libar-gpr.la
-libar_gsl_la_SOURCES = $(gsl_c_sources)
-libar_gsl_la_CFLAGS = $(AM_CFLAGS)
-libar_gsl_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
+lib_LTLIBRARIES = libaudioreach-gsl.la
+libaudioreach_gsl_la_CC = @CC@
+libaudioreach_gsl_la_LIBADD = $(top_builddir)/acdb/libaudioreach-acdb.la $(top_builddir)/ar_osal/libaudioreach-osal.la $(top_builddir)/ar_util/libaudioreach-util.la $(top_builddir)/spf/libaudioreach-spfhdrs.la $(top_builddir)/gpr/libaudioreach-gpr.la
+libaudioreach_gsl_la_SOURCES = $(gsl_c_sources)
+libaudioreach_gsl_la_CFLAGS = $(AM_CFLAGS)
+libaudioreach_gsl_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
 
 if MDSP_PROC
-libar_gsl_la_CFLAGS += -DMDSP_PROC
+libaudioreach_gsl_la_CFLAGS += -DMDSP_PROC
 endif
 
 if USES_ATS_DATA_LOGGING
-libar_gsl_la_CFLAGS += -DATS_DATA_LOGGING
-libar_gsl_la_CPPFLAGS = -DATS_DATA_LOGGING
+libaudioreach_gsl_la_CFLAGS += -DATS_DATA_LOGGING
+libaudioreach_gsl_la_CPPFLAGS = -DATS_DATA_LOGGING
 endif
