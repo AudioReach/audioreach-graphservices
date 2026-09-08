@@ -4,7 +4,6 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: spf
-Description: spf library
+Description: spf headers
 Version: @LT_VERSION@
-Libs: -L${libdir} -laudioreach-spfhdrs
 Cflags: -I${includedir}/spf -I${includedir}/spf/asps
