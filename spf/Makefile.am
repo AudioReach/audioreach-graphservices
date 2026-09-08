@@ -2,13 +2,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = spf.pc
 EXTRA_DIST = $(pkgconfig_DATA)
 
-AM_CFLAGS = -Wall -Werror
-AM_CFLAGS += -I ./api
-AM_CFLAGS += -I ./api/apm
-AM_CFLAGS += -I ./api/ar_utils
-AM_CFLAGS += -I ./api/modules
-AM_CFLAGS += -I ./api/vcpm
-
 spf_sources = ./api/apm/apm_api.h \
                 ./api/apm/apm_api_version.h \
                 ./api/apm/apm_container_api.h \
@@ -154,10 +147,3 @@ spf_include_HEADERS = $(spf_sources)
 
 asps_includedir = $(includedir)/spf/asps
 asps_include_HEADERS = $(asps_sources)
-
-#LIBRARY for LE apps
-lib_LTLIBRARIES = libaudioreach-spfhdrs.la
-libaudioreach_spfhdrs_la_CC = @CC@
-libaudioreach_spfhdrs_la_SOURCES = $(spf_sources) $(asps_sources)
-libaudioreach_spfhdrs_la_CFLAGS = $(AM_CFLAGS)
-libaudioreach_spfhdrs_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
