@@ -65,12 +65,12 @@ lib_includedir = $(includedir)
 lib_include_HEADERS = $(ats_headers)
 requiredlibs = -lrt
 
-lib_LTLIBRARIES = libar-ats.la
-libar_ats_la_CC = @CC@
-libar_ats_la_LIBADD = -lar-osal -L$(top_builddir)/ar_osal
-libar_ats_la_LIBADD += -lar-acdb -L$(top_builddir)/acdb
+lib_LTLIBRARIES = libaudioreach-ats.la
+libaudioreach_ats_la_CC = @CC@
+libaudioreach_ats_la_LIBADD = -laudioreach-osal -L$(top_builddir)/ar_osal
+libaudioreach_ats_la_LIBADD += -laudioreach-acdb -L$(top_builddir)/acdb
 if CUTILS_SUPPORTED
-libar_ats_la_LIBADD += -lcutils
+libaudioreach_ats_la_LIBADD += -lcutils
 AM_CFLAGS += -DAR_ATS_USE_CUTILS
 endif
 
@@ -81,23 +81,23 @@ else
 AM_CFLAGS += @DIAG_CFLAGS@
 AM_CPPFLAGS += -DFEATURE_LE_DIAG
 requiredlibs += @DIAG_LIBS@
-libar_ats_la_LIBADD += @DIAG_LIBS@
+libaudioreach_ats_la_LIBADD += @DIAG_LIBS@
 endif
 
-libar_ats_la_SOURCES = $(ats_c_sources)
-libar_ats_la_CFLAGS = $(AM_CFLAGS)
-libar_ats_la_CPPFLAGS = $(AM_CPPFLAGS)
+libaudioreach_ats_la_SOURCES = $(ats_c_sources)
+libaudioreach_ats_la_CFLAGS = $(AM_CFLAGS)
+libaudioreach_ats_la_CPPFLAGS = $(AM_CPPFLAGS)
 if USES_ATS_TRANSPORT_TCPIP
-libar_ats_la_CFLAGS += -DATS_TRANSPORT_TCPIP
-libar_ats_la_CPPFLAGS += -DATS_TRANSPORT_TCPIP
+libaudioreach_ats_la_CFLAGS += -DATS_TRANSPORT_TCPIP
+libaudioreach_ats_la_CPPFLAGS += -DATS_TRANSPORT_TCPIP
 endif
 
 if USES_ATS_DATA_LOGGING
-libar_ats_la_CFLAGS += -DATS_DATA_LOGGING
-libar_ats_la_CPPFLAGS += -DATS_DATA_LOGGING
+libaudioreach_ats_la_CFLAGS += -DATS_DATA_LOGGING
+libaudioreach_ats_la_CPPFLAGS += -DATS_DATA_LOGGING
 endif
 
-libar_ats_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
+libaudioreach_ats_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
 
 AM_CPPFLAGS += -DSOCK_PATH='"/usr/bin/gateway/ats_sockets"' \
         -DSOCK_PATH_SERVER='"/usr/bin/gateway/ats_sockets/unix_sock.server"' \
@@ -122,7 +122,7 @@ gateway_sources = ./transports/tcpip_gateway/src/tcpip_gateway_main.cpp \
 bin_PROGRAMS = ats_gateway
 ats_gateway_CC = @CC@
 ats_gateway_SOURCES = $(gateway_sources)
-ats_gateway_LDADD = $(top_builddir)/ar_osal/libar-osal.la
+ats_gateway_LDADD = $(top_builddir)/ar_osal/libaudioreach-osal.la
 ats_gateway_CPPFLAGS = $(AM_CPPFLAGS)
 
 if USES_ATS_DATA_LOGGING
