@@ -60,7 +60,7 @@ lib_include_HEADERS = $(gsl_sources)
 
 lib_LTLIBRARIES = libaudioreach-gsl.la
 libaudioreach_gsl_la_CC = @CC@
-libaudioreach_gsl_la_LIBADD = $(top_builddir)/acdb/libaudioreach-acdb.la $(top_builddir)/ar_osal/libaudioreach-osal.la $(top_builddir)/ar_util/libaudioreach-util.la $(top_builddir)/spf/libaudioreach-spfhdrs.la $(top_builddir)/gpr/libaudioreach-gpr.la
+libaudioreach_gsl_la_LIBADD = $(top_builddir)/acdb/libaudioreach-acdb.la $(top_builddir)/ar_osal/libaudioreach-osal.la $(top_builddir)/ar_util/libaudioreach-util.la $(top_builddir)/gpr/libaudioreach-gpr.la
 libaudioreach_gsl_la_SOURCES = $(gsl_c_sources)
 libaudioreach_gsl_la_CFLAGS = $(AM_CFLAGS)
 libaudioreach_gsl_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
