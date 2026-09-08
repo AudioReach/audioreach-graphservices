@@ -92,7 +92,8 @@ done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int32_t ar_osal_signal_wait(_In_ ar_osal_signal_t signal)
 {
-    int32_t rc;
+    int32_t rc = AR_EOK;
+    int32_t ret = 0;
     osal_int_signal_t *the_signal;
     if (NULL == signal) {
         AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: signal is NULL\n", __func__);
@@ -100,37 +101,28 @@ int32_t ar_osal_signal_wait(_In_ ar_osal_signal_t signal)
         goto done;
     }
     the_signal = (osal_int_signal_t *)signal;
-    rc = pthread_mutex_lock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, rc = %d\n", __func__, rc);
+    ret = pthread_mutex_lock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
         goto done;
     }
     if (true == the_signal->signalled)
     {
-        rc = pthread_mutex_unlock(&the_signal->osal_mutex);
-        if (rc) {
-            AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
-            rc = AR_EFAILED;
-        }
-        goto done;
+        goto unlock;
     }
 
-    rc = pthread_cond_wait(&the_signal->osal_cond, &the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to wait on signal, rc = %d\n", __func__, rc);
+    ret = pthread_cond_wait(&the_signal->osal_cond, &the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to wait on signal, rc = %d\n", __func__, ret);
         rc = AR_EFAILED;
-        goto err_cond;
     }
-
-    rc = pthread_mutex_unlock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
+unlock:
+    ret = pthread_mutex_unlock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
-        goto done;
     }
-err_cond:
-    pthread_mutex_unlock(&the_signal->osal_mutex);
 done:
     return rc;
 }
@@ -138,7 +130,8 @@ done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 int32_t ar_osal_signal_timedwait(_In_ ar_osal_signal_t signal, _In_ int64_t timeout_in_nsec)
 {
-    int32_t rc;
+    int32_t rc = AR_EOK;
+    int32_t ret = 0;
     osal_int_signal_t *the_signal;
     struct timespec osal_ts;
 
@@ -158,37 +151,28 @@ int32_t ar_osal_signal_timedwait(_In_ ar_osal_signal_t signal, _In_ int64_t time
     }
 
     the_signal = (osal_int_signal_t *)signal;
-    rc = pthread_mutex_lock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, rc = %d\n", __func__, rc);
+    ret = pthread_mutex_lock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
         goto done;
     }
 
     if (true == the_signal->signalled) {
-        rc = pthread_mutex_unlock(&the_signal->osal_mutex);
-        if (rc) {
-            AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
-            rc = AR_EFAILED;
-        }
-        goto done;
+        goto unlock;
     }
 
-    rc = pthread_cond_timedwait(&the_signal->osal_cond, &the_signal->osal_mutex, &osal_ts);
-    if (rc) {
-
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to wait on signal, rc = %d\n", __func__, rc);
-        rc = AR_EFAILED;
-        goto err_cond;
-    }
-
-    rc = pthread_mutex_unlock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
+    ret = pthread_cond_timedwait(&the_signal->osal_cond, &the_signal->osal_mutex, &osal_ts);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to wait on signal, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
     }
-err_cond:
-    pthread_mutex_unlock(&the_signal->osal_mutex);
+unlock:
+    ret = pthread_mutex_unlock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, ret = %d\n", __func__, ret);
+        rc = AR_EFAILED;
+    }
 done:
     return rc;
 }
@@ -196,7 +180,8 @@ done:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 int32_t ar_osal_signal_set(_In_ ar_osal_signal_t signal)
 {
-    int32_t rc;
+    int32_t rc = AR_EOK;
+    int32_t ret = 0;
     osal_int_signal_t *the_signal;
 
     if (NULL == signal) {
@@ -206,28 +191,25 @@ int32_t ar_osal_signal_set(_In_ ar_osal_signal_t signal)
     }
 
     the_signal = (osal_int_signal_t *)signal;
-    rc = pthread_mutex_lock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, rc = %d\n", __func__, rc);
+    ret = pthread_mutex_lock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to acquire lock, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
         goto done;
     }
     the_signal->signalled = true;
 
-    rc = pthread_cond_broadcast(&the_signal->osal_cond);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to signal on signal, rc = %d\n", __func__, rc);
+    ret = pthread_cond_broadcast(&the_signal->osal_cond);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to signal on signal, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
-		goto err_cond;
     }
 
-    rc = pthread_mutex_unlock(&the_signal->osal_mutex);
-    if (rc) {
-        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
+    ret = pthread_mutex_unlock(&the_signal->osal_mutex);
+    if (ret) {
+        AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, ret = %d\n", __func__, ret);
         rc = AR_EFAILED;
     }
-err_cond:
-    pthread_mutex_unlock(&the_signal->osal_mutex);
 done:
     return rc;
 }
