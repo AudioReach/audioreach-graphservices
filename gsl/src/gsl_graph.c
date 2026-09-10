@@ -767,7 +767,7 @@ static void gsl_graph_check_ckvs(struct gsl_key_vector *gkv, struct gsl_key_vect
 	int ckv_count = 0;
 	int rc = AR_EOK;
 
-	rsp.list_size = 0;
+	memset(&rsp, 0, sizeof(rsp));
 	rc = gsl_get_graph_ckvs(gkv, (void *)&rsp);
 	if (rc) {
 		GSL_ERR("gsl_get_graph_ckvs failed: %d", rc);
