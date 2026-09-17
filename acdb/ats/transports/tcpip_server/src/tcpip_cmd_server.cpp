@@ -301,7 +301,7 @@ int32_t TcpipCmdServer::set_connected_lock(uint8_t value)
 
     is_connected = value;
 
-    status = ar_osal_mutex_lock(connection_lock);
+    status = ar_osal_mutex_unlock(connection_lock);
     if (AR_FAILED(status))
     {
         return status;
@@ -464,12 +464,15 @@ void *TcpipCmdServer::transmit_routine(void *args)
     recieve_buffer.buffer_size = TCPIP_CMD_SERVER_RECV_BUFFER_SIZE;
     //Stores one message
     message_buffer.buffer = (char_t*)ar_heap_malloc(message_buffer.buffer_size, &heap_inf);
-    if (NULL == message_buffer.buffer)
+    if (NULL == message_buffer.buffer) {
+        ar_osal_mutex_unlock(connection_lock);
         return 0;
+    }
 
     recieve_buffer.buffer = (char_t*)ar_heap_malloc(recieve_buffer.buffer_size, &heap_inf);
     if (NULL == recieve_buffer.buffer) {
         ar_heap_free(message_buffer.buffer, &heap_inf);
+        ar_osal_mutex_unlock(connection_lock);
         return 0;
     }
 
@@ -477,6 +480,7 @@ void *TcpipCmdServer::transmit_routine(void *args)
     if (NULL == outbuf) {
         ar_heap_free(message_buffer.buffer, &heap_inf);
         ar_heap_free(recieve_buffer.buffer, &heap_inf);
+        ar_osal_mutex_unlock(connection_lock);
         return 0;
     }
     ar_mem_set(outbuf, 0, 1);
@@ -542,6 +546,7 @@ void *TcpipCmdServer::transmit_routine(void *args)
 
     ar_heap_free(message_buffer.buffer, &heap_inf);
     ar_heap_free(recieve_buffer.buffer, &heap_inf);
+    ar_heap_free(outbuf, &heap_inf);
 
     is_connected = false;
     ar_osal_mutex_unlock(connection_lock);

@@ -113,7 +113,7 @@ int32_t TcpipDlsServer::set_connected_lock(uint8_t value)
 
     is_connected = value;
 
-    status = ar_osal_mutex_lock(connection_lock);
+    status = ar_osal_mutex_unlock(connection_lock);
     if (AR_FAILED(status))
     {
         return status;
