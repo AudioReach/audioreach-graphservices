@@ -127,8 +127,8 @@ int32_t ar_osal_signal_wait(_In_ ar_osal_signal_t signal)
     if (rc) {
         AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
         rc = AR_EFAILED;
-        goto done;
     }
+    goto done;
 err_cond:
     pthread_mutex_unlock(&the_signal->osal_mutex);
 done:
@@ -187,6 +187,7 @@ int32_t ar_osal_signal_timedwait(_In_ ar_osal_signal_t signal, _In_ int64_t time
         AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
         rc = AR_EFAILED;
     }
+    goto done;
 err_cond:
     pthread_mutex_unlock(&the_signal->osal_mutex);
 done:
@@ -226,6 +227,7 @@ int32_t ar_osal_signal_set(_In_ ar_osal_signal_t signal)
         AR_LOG_ERR(AR_OSAL_SIGNAL_LOG_TAG,"%s: Failed to unlock, rc = %d\n", __func__, rc);
         rc = AR_EFAILED;
     }
+    goto done;
 err_cond:
     pthread_mutex_unlock(&the_signal->osal_mutex);
 done:

@@ -494,10 +494,13 @@ static int32_t ar_osal_servreg_ssr() {
         AR_LOG_ERR(AR_OSAL_SERVREG_TAG, "%s: open (%s) fail - %s (%d)",
 		   __func__, ADSP_LOADER_PATH, strerror(errno), errno);
 	rc = errno;
-    } else if (write(fd_dsplder, "1", 1) < 0) {
-        AR_LOG_ERR(AR_OSAL_SERVREG_TAG, "%s: write (%s) fail - %s (%d)",
-		   __func__, ADSP_LOADER_PATH, strerror(errno), errno);
-	rc = errno;
+    } else {
+        if (write(fd_dsplder, "1", 1) < 0) {
+            AR_LOG_ERR(AR_OSAL_SERVREG_TAG, "%s: write (%s) fail - %s (%d)",
+		       __func__, ADSP_LOADER_PATH, strerror(errno), errno);
+	    rc = errno;
+        }
+        close(fd_dsplder);
     }
 
     return rc;
@@ -523,9 +526,12 @@ void ar_osal_panic()
         AR_LOG_ERR(AR_OSAL_SERVREG_TAG, "%s: open (%s) fail - %s (%d)", __func__,
                    PROC_PANIC_PATH, strerror(errno), errno);
 	//ignore if panic path can't be opened
-    } else if (write(fd_sysrq, &panic_set, 1) < 0) {
-        AR_LOG_ERR(AR_OSAL_SERVREG_TAG,"%s: write (%s) fail - %s (%d)", __func__,
-		   PROC_PANIC_PATH, strerror(errno), errno);
+    } else {
+        if (write(fd_sysrq, &panic_set, 1) < 0) {
+            AR_LOG_ERR(AR_OSAL_SERVREG_TAG,"%s: write (%s) fail - %s (%d)", __func__,
+		       PROC_PANIC_PATH, strerror(errno), errno);
+        }
+        close(fd_sysrq);
     }
 #endif
 }
