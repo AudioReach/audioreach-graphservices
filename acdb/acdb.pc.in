@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: acdb
 Description: acdb library
 Version: @LT_VERSION@
-Libs: -L${libdir} -lar-acdb
+Libs: -L${libdir} -laudioreach-acdb
 Cflags: -I${includedir}

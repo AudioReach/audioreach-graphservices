@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: ats
 Description: ats library
 Version: @LT_VERSION@
-Libs: -L${libdir} -lar-ats
+Libs: -L${libdir} -laudioreach-ats
 Cflags: -I${includedir}\ats

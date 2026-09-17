@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := libar-gsl
+LOCAL_MODULE := libaudioreach-gsl
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
 LOCAL_VENDOR_MODULE := true
@@ -32,9 +32,9 @@ LOCAL_SRC_FILES := src/gsl_main.c \
 LOCAL_HEADER_LIBRARIES := libspf-headers
 LOCAL_SHARED_LIBRARIES := \
     liblx-osal\
-    libar-acdb\
+    libaudioreach-acdb\
     liblx-ar_util\
-    libar-gpr
+    libaudioreach-gpr
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/api\
     $(LOCAL_PATH)/inc\

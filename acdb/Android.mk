@@ -8,7 +8,7 @@ include $(CLEAR_VARS)
 acdb-def += -D_ANDROID_
 
 #----------------------------------------------------------------------------
-#             Make the Shared library (libar-acdb)
+#             Make the Shared library (libaudioreach-acdb)
 #----------------------------------------------------------------------------
 
 #LOCAL_C_INCLUDES := $(LOCAL_PATH)/inc
@@ -32,7 +32,7 @@ LOCAL_SRC_FILES := \
     src/acdb_heap.c\
     src/acdb_context_mgr.c
 
-LOCAL_MODULE := libar-acdb
+LOCAL_MODULE := libaudioreach-acdb
 LOCAL_MODULE_OWNER := qti
 LOCAL_MODULE_TAGS := optional
 LOCAL_VENDOR_MODULE := true
@@ -126,8 +126,8 @@ LOCAL_SHARED_LIBRARIES := \
     libutils\
     libcutils \
     libdiag \
-    libar-gsl\
-    libar-acdb
+    libaudioreach-gsl\
+    libaudioreach-acdb
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/ats/api
 LOCAL_EXPORT_C_INCLUDE_DIRS += $(LOCAL_PATH)/ats/inc
