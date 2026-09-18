@@ -363,7 +363,7 @@ static gpr_dl_lx_port_t * gpr_dl_lx_local_init(uint32_t src_domain_id, uint32_t 
         free(dl_lx_port);
         return NULL;
     }
-    pthread_setname_np(dl_lx_port->receiver_thread, "gpr_receiver_thread");
+    pthread_setname_np(dl_lx_port->receiver_thread, "GPR_Receiver");
     return dl_lx_port;
 }
 
