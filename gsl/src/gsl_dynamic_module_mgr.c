@@ -318,11 +318,8 @@ int32_t gsl_do_load_bootup_dyn_modules(uint32_t master_proc,
 		goto exit;
 
 	/* TODO: only register if master proc is booting up */
-	rc = gsl_do_register_dynamic_modules(master_proc, FALSE, handle);
-	if (rc) {
-		GSL_ERR("failed to register dynamic modules %d", rc);
-		goto exit;
-	}
+	gsl_do_register_dynamic_modules(master_proc, FALSE, handle);
+	rc = 0;
 
 	/* TODO: loop over all sybsystems. This is temporary. Non-preloaded
 	 * modules will be loaded by spf on demand
