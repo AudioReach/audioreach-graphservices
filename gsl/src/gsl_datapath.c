@@ -62,6 +62,12 @@ static void ext_mem_cache_init(void)
 		/* if first UC, instantiate the cache array and locks.*/
 		ext_mem_cache.entries = gsl_mem_zalloc(
 			sizeof(struct gsl_ext_mem_cache_entry) * GSL_MAX_CACHE_SIZE);
+		if (ext_mem_cache.entries == NULL) {
+			GSL_ERR("Failed to allocate ext mem cache entries");
+			ext_mem_cache.num_extern_mem_datapaths--;
+			GSL_MUTEX_UNLOCK(ext_mem_cache.num_dps_lock);
+			return;
+		}
 		ext_mem_cache.age_counter = 0;
 		ar_osal_mutex_create(&ext_mem_cache.global_cache_lock);
 
@@ -429,7 +435,7 @@ static void gsl_mark_buffer_as_avail(struct gsl_data_path_info *dp_info,
 {
 	GSL_MUTEX_LOCK(dp_info->lock);
 
-	if (buf_index <= dp_info->config.num_buffs)
+	if (buf_index < dp_info->config.num_buffs)
 		clear_bit(dp_info->buff_used_status, buf_index);
 
 	GSL_MUTEX_UNLOCK(dp_info->lock);
@@ -1548,11 +1554,16 @@ static void gsl_dp_fill_client_buff(struct gsl_data_path_info *dp_info,
 		internal_buf->spf_flags = rd_done->flags;
 		__gpr_cmd_free(packet);
 	} else {
-		/*
-		 * @TODO: Assumption that spf always returns buffer of size <=
-		 * requested size by client. Check if that's correct
+		/* Cap to configured chunk size: SPF can return size_from_spf larger
+		 * than dp_info->config.buff_size, which would underflow buff_size
+		 * in gsl_dp_read_heap and trigger UBSan abort. tombstone_09 (suiren).
 		 */
 		*buff_size = internal_buf->size_from_spf;
+		if (*buff_size > dp_info->config.buff_size) {
+			GSL_ERR("size_from_spf %u > buff_size %u, cap to buff_size",
+				*buff_size, dp_info->config.buff_size);
+			*buff_size = dp_info->config.buff_size;
+		}
 
 		gsl_memcpy(data_buff_addr, *buff_size,
 			internal_buf->gsl_msg.shmem.v_addr, *buff_size);
