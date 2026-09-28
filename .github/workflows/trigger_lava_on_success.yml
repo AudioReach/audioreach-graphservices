@@ -87,7 +87,7 @@ jobs:
 
   trigger_lava:
     needs: prepare_matrix
-    uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@master
+    uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@ci
     secrets: inherit
     with:
       build_matrix: ${{ needs.prepare_matrix.outputs.test_matrix }}
