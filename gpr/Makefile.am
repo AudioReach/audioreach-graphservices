@@ -52,7 +52,7 @@ gpr_c_sources =  ./core/src/gpr_drv.c \
                  ./datalinks/gpr_lx/src/gpr_lx.c \
                  ./platform/linux/gpr_init_lx_wrapper.c
 
-lib_includedir = $(includedir)
+lib_includedir = $(includedir)/gpr
 lib_include_HEADERS = $(gpr_sources)
 
 lib_LTLIBRARIES = libar-gpr.la
