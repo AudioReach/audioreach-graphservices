@@ -473,19 +473,17 @@ int32_t AcdbListMerge(LinkedList *merge_to, LinkedList *merge_from)
 
 void AcdbListMoveToEnd(LinkedList *list, LinkedListNode** node, LinkedListNode** prev_node)
 {
-	if (IsNull(list) || list->length == 0 || list->length == 1) return;
-
-	LinkedListNode *tmp = NULL;
+	if (IsNull(list) || IsNull(node) || IsNull(*node)) return;
+	if (list->length == 0 || list->length == 1) return;
 
 	if (list->length == 2)
 	{
-		//Swap Head and Tail
-		tmp = list->p_head;
+		//The node must be head here (tail case handled above). Swap head/tail.
+		LinkedListNode *tmp = list->p_head;
 		list->p_head = list->p_tail;
 		list->p_tail = tmp;
 		list->p_tail->p_next = NULL;
 		list->p_head->p_next = list->p_tail;
-		tmp = NULL;
 		return;
 	}
 
@@ -496,10 +494,8 @@ void AcdbListMoveToEnd(LinkedList *list, LinkedListNode** node, LinkedListNode**
 		AcdbListAppend(list, *node);
 		return;
 	}
-	else if (list->p_tail == *node)
-	{
-		return;
-	}
+
+	if (IsNull(*prev_node)) return;
 
 	(*prev_node)->p_next = (*node)->p_next;
 	(*node)->p_next = NULL;
@@ -526,6 +522,7 @@ int32_t AcdbListRemove(LinkedList *list, LinkedListNode *prev, LinkedListNode *n
 		{
 			prev->p_next = NULL;
 		}
+		list->p_tail = prev;
 		node->p_next = NULL;
 		return AR_EOK;
 	}

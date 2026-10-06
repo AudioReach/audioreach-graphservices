@@ -803,6 +803,9 @@ int32_t UpdateHeap(acdb_delta_data_map_t *req_map)
                                 heap_sg_data->non_global_data.data_size += req_caldata->param_size;
 
                                 ACDB_FREE(heap_caldata->param_payload);
+                                heap_caldata->param_payload = NULL;
+                                heap_caldata->param_size = 0;
+
                                 heap_caldata->param_payload = req_caldata->param_payload;
                                 heap_caldata->param_size = req_caldata->param_size;
 
