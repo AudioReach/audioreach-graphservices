@@ -434,6 +434,7 @@ void* ats_server_start_routine(void* arg)
             if (AR_FAILED(status))
 			{
 				ATS_ERR("Error[%d]: Failed to create transmission thread #%d.\n", status, i);
+				ACDB_FREE(gateway_socket_ptr);
             }
 			else
 			{
@@ -452,7 +453,6 @@ void* ats_server_start_routine(void* arg)
 			for (int thd = 0; thd < MAX_ATS_CLIENTS_ALLOWED; thd++)
 			{
 				ar_osal_thread_join_destroy(g_transmit_thread_holder[thd]);
-				ACDB_FREE(gateway_socket_ptr);
 			}
 		}
 	}

@@ -339,6 +339,11 @@ bool_t copy_frame_to_buffer (
         buf_cntxt_ptr->buffer_length = frame_ptr->header.buffer_length;
     }
 
+    if (frame_ptr->header.frame_offset >= buf_cntxt_ptr->buffer_length)
+    {
+        return FALSE;
+    }
+
     /** Calculate destination loaction where to copy the frame*/
     dest_loc_ptr = buf_cntxt_ptr->buffer_ptr + frame_ptr->header.frame_offset;
     /** copy frame on to buffer */
