@@ -108,6 +108,7 @@ int32_t ar_fopen(_Out_ ar_fhandle *handle,
          * string to avoid 80 char overflow
          */
         AR_LOG_ERR(AR_OSAL_FILE_IO_LOG_TAG,"%s fail for %s err:%d %s\n",__func__, path, rc, strerror(errno));
+        goto done;
     }
 
 	if(access == AR_FOPEN_WRITE_ONLY || access == AR_FOPEN_WRITE_ONLY_APPEND)
@@ -202,6 +203,7 @@ int32_t ar_fseek(_In_ ar_fhandle handle,
             break;
         case AR_FSEEK_CURRENT:
             fseek_ref = SEEK_CUR;
+            break;
         default :
             AR_LOG_ERR(AR_OSAL_FILE_IO_LOG_TAG,"Invalid reference id %d\n", fseek_ref);
 			return AR_EFAILED;
