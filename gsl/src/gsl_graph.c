@@ -1080,7 +1080,7 @@ static int32_t gsl_graph_send_persist_cal(struct gsl_graph *graph,
 				sizeof(rsp));
 			if (rc != AR_EOK) {
 				GSL_ERR("ACDB get subgraph procids failed %d", rc);
-				goto free_sg_proc_ids;
+				goto cleanup;
 			}
 			sg->num_proc_ids = rsp.sg_proc_ids->num_proc_ids;
 			GSL_DBG("num procs - %d", sg->num_proc_ids);
@@ -1207,10 +1207,9 @@ continue_cma:
 			goto cleanup;
 		}
 	}
-free_sg_proc_ids:
-	if(!rsp.sg_proc_ids)
-		gsl_mem_free(rsp.sg_proc_ids);
 cleanup:
+	if(rsp.sg_proc_ids)
+		gsl_mem_free(rsp.sg_proc_ids);
 	gsl_mem_free(cma_sg_info.subgraph_list);
 free_status_list:
 	gsl_mem_free(sg_cma_status_list.list);

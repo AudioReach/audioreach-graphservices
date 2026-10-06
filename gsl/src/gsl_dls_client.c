@@ -508,11 +508,6 @@ int32_t gsl_dls_client_deinit()
 
     gsl_dls_client_register_deregister_commit_log_buffer_event(GLS_DLS_EVENT_FLAG_DEREGISTER_COMMIT_LOG_BUFFER);
 
-    rc = gsl_signal_destroy(&dls_client_ctxt.sig);
-    if (AR_FAILED(rc)) {
-        GSL_ERR("failed to destroy dls client signal. status %d", rc);
-    }
-
     rc = __gpr_cmd_deregister(GSL_DLS_CLIENT_GPR_SRC_PORT);
     if (AR_FAILED(rc)) {
         GSL_ERR("failed to deregister dls source port with gpr. status %d", rc);
@@ -525,7 +520,7 @@ int32_t gsl_dls_client_deinit()
 
     rc = gsl_signal_destroy(&dls_client_ctxt.sig);
     if (AR_FAILED(rc)) {
-        GSL_ERR("failed to destroy client context signal. status %d", rc);
+        GSL_ERR("failed to destroy dls client signal. status %d", rc);
     }
 
     dls_client_ctxt.is_dls_buffer_configured = 0;

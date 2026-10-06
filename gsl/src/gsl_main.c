@@ -1813,13 +1813,13 @@ int32_t gsl_ioctl(gsl_handle_t graph_handle,
 		break;
 
 	case GSL_CMD_FREE_READ_BUFF:
-		for (i = 0; i < graph->write_info.config.num_buffs; ++i)
-			gsl_msg_free(&graph->write_info.buff_list[i].gsl_msg);
+		for (i = 0; i < graph->read_info.config.num_buffs; ++i)
+			gsl_msg_free(&graph->read_info.buff_list[i].gsl_msg);
 		break;
 
 	case GSL_CMD_FREE_WRITE_BUFF:
-		for (i = 0; i < graph->read_info.config.num_buffs; ++i)
-			gsl_msg_free(&graph->read_info.buff_list[i].gsl_msg);
+		for (i = 0; i < graph->write_info.config.num_buffs; ++i)
+			gsl_msg_free(&graph->write_info.buff_list[i].gsl_msg);
 		break;
 
 	case GSL_CMD_EOS:
