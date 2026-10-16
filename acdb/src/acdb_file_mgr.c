@@ -647,6 +647,7 @@ int32_t AcdbFileManAddDatabase(acdb_file_man_data_files_t *db_files,
             {
                 ACDB_ERR("Error[%d]: The database file %s already exists", AR_EALREADY,
                     db_file->path);
+                ACDB_MUTEX_UNLOCK(acdb_file_man_context.file_man_lock);
                 return AR_EALREADY;
             }
         }
