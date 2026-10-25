@@ -67,8 +67,9 @@ requiredlibs = -lrt
 
 lib_LTLIBRARIES = libar-ats.la
 libar_ats_la_CC = @CC@
-libar_ats_la_LIBADD = -lar-osal -L$(top_builddir)/ar_osal
-libar_ats_la_LIBADD += -lar-acdb -L$(top_builddir)/acdb
+libar_ats_la_LIBADD = $(top_builddir)/ar_osal/libar-osal.la
+libar_ats_la_LIBADD += $(top_builddir)/acdb/libar-acdb.la
+libar_ats_la_LIBADD += $(top_builddir)/gsl/libar-gsl.la
 if CUTILS_SUPPORTED
 libar_ats_la_LIBADD += -lcutils
 AM_CFLAGS += -DAR_ATS_USE_CUTILS
