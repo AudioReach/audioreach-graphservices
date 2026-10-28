@@ -7,7 +7,7 @@
 # Requires autoconf tool later than 2.61
 AC_PREREQ(2.69)
 
-AC_INIT([arosp],1.0.2)
+AC_INIT([arosp],1.1.0)
 # Does not strictly follow GNU Coding standards
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 LT_INIT
@@ -16,12 +16,21 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_AR
 
+# Default libtool version for libraries without ABI changes
 m4_define([LT_MAJOR], [1])
 m4_define([LT_MINOR], [0])
 m4_define([LT_PATCH], [2])
 
 AC_SUBST([LT_VERSION], LT_MAJOR.LT_MINOR.LT_PATCH)
 AC_SUBST([LT_VERSION_NUMBER], LT_MAJOR:LT_MINOR:LT_PATCH)
+
+# GSL-specific libtool version
+m4_define([GSL_LT_MAJOR], [1])
+m4_define([GSL_LT_MINOR], [1])
+m4_define([GSL_LT_PATCH], [0])
+
+AC_SUBST([GSL_LT_VERSION], GSL_LT_MAJOR.GSL_LT_MINOR.GSL_LT_PATCH)
+AC_SUBST([GSL_LT_VERSION_NUMBER], GSL_LT_MAJOR:GSL_LT_MINOR:GSL_LT_PATCH)
 
 AC_ARG_WITH([qcom],
     AS_HELP_STRING([install qcom header files (default is no)]),
