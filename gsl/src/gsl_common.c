@@ -14,6 +14,7 @@
 #include "ar_osal_sys_id.h"
 #include "gpr_api_inline.h"
 #include "apm_api.h"
+#include "amdb_api.h"
 #include "ar_util_err_detection.h"
 #include "ar_osal_servreg.h"
 
@@ -207,6 +208,9 @@ int32_t gsl_send_spf_cmd(gpr_packet_t **packet, struct gsl_signal *sig_p,
 				&ev_flags, &spf_status, rsp_pkt);
 		} else if (opcode == APM_CMD_GRAPH_PREPARE) {
 			rc = gsl_signal_timedwait(sig_p, GSL_GRAPH_PREPARE_TIMEOUT_MS, &ev_flags,
+				&spf_status, rsp_pkt);
+		} else if (opcode == AMDB_CMD_LOAD_MODULES) {
+			rc = gsl_signal_timedwait(sig_p, GSL_AMDB_LOAD_MODULES_TIMEOUT_MS, &ev_flags,
 				&spf_status, rsp_pkt);
 		} else {
 			rc = gsl_signal_timedwait(sig_p, GSL_SPF_TIMEOUT_MS, &ev_flags,
