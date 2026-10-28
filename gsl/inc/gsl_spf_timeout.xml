@@ -16,6 +16,8 @@
             type="uint32_t" typeUnSigned="true" byteSize="0x4" byteOffset="0xc" min="0x0" max="0x157c" default="0x157c"/>
           <CONFIG_ELEMENT description="Max wait time for read/write operation completion" name="spf_read_write_timeout"
             type="uint32_t" typeUnSigned="true" byteSize="0x4" byteOffset="0x10" min="0x0" max="0x36ee80" default="0x3e8"/>
+          <CONFIG_ELEMENT description="Max wait time for AMDB load modules operation completion" name="amdb_load_modules_timeout"
+            type="uint32_t" typeUnSigned="true" byteSize="0x4" byteOffset="0x14" min="0x0" max="0x1b7740" default="0x1388"/>
         </PARAMETER>
       </PARAMETER_LIST>
     </MODULE>
