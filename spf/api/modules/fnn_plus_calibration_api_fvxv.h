@@ -1,11 +1,10 @@
-/*=======================================================================
-Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
-All rights reserved.
-Confidential and Proprietary - Qualcomm Technologies, Inc.
-=========================================================================*/
-
 #ifndef __FNN_PLUS_CALIBRATION_API_FVXV__
 #define __FNN_PLUS_CALIBRATION_API_FVXV__
+/**
+* \copyright
+*    Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+*    SPDX-License-Identifier: BSD-3-Clause
+*/
 
 #include "module_cmn_api.h"
 
