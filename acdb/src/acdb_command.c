@@ -5357,20 +5357,29 @@ int32_t AcdbGetSubgraphCalibration(AcdbAudioCalContextInfo *info,
 
         if (info->should_check_hw_accel)
         {
-            status = DataProcIsHwAccelParam(info->hw_accel_module_list_offset,
+            /*
+             * Use a local variable for the HW Accel membership check
+             * result so that the loop's running status is not
+             * overwritten by AR_ENOTEXIST when a parameter simply does
+             * not belong to the HW Accel parameter list. Leaving that
+             * result in the shared status variable caused it to leak
+             * out as the function's final return value.
+             */
+            int32_t hw_status = DataProcIsHwAccelParam(
+                info->hw_accel_module_list_offset,
                 module_header.module_iid, module_header.parameter_id);
 
             switch (mem_type)
             {
             case ACDB_HW_ACCEL_MEM_DEFAULT:
-                if (AR_SUCCEEDED(status))
+                if (AR_SUCCEEDED(hw_status))
                 {
                     cur_dot_offset += sizeof(uint32_t);
                     continue;
                 }
                 break;
             case ACDB_HW_ACCEL_MEM_CMA:
-                if (AR_FAILED(status))
+                if (AR_FAILED(hw_status))
                 {
                     cur_dot_offset += sizeof(uint32_t);
                     continue;
