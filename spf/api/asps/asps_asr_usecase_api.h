@@ -39,9 +39,9 @@ extern "C" {
 #include "spf_begin_pragma.h"
 struct asps_asr_usecase_register_payload_t
 {
-   uint32_t frame_length_ms;
-   /**< Frame length in milliseconds for ASR processing
-        Range: 100..20000, Default: 3000 */
+   uint32_t enable_partial_transcription;
+   /**< Flag to enable partial transcription for ASR
+        Range: 0..1, Default: 0 */
 
    uint32_t language_code;
    /**< Language code for ASR output
