@@ -43,9 +43,9 @@ acdb_c_sources = ./src/acdb.c \
 lib_includedir = $(includedir)
 lib_include_HEADERS = $(acdb_sources)
 
-lib_LTLIBRARIES = libar-acdb.la
-libar_acdb_la_CC = @CC@
-libar_acdb_la_LIBADD = -lar-osal -L$(top_builddir)/ar_osal
-libar_acdb_la_SOURCES = $(acdb_c_sources)
-libar_acdb_la_CFLAGS = $(AM_CFLAGS)
-libar_acdb_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
+lib_LTLIBRARIES = libaudioreach-acdb.la
+libaudioreach_acdb_la_CC = @CC@
+libaudioreach_acdb_la_LIBADD = -laudioreach-osal -L$(top_builddir)/ar_osal
+libaudioreach_acdb_la_SOURCES = $(acdb_c_sources)
+libaudioreach_acdb_la_CFLAGS = $(AM_CFLAGS)
+libaudioreach_acdb_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
