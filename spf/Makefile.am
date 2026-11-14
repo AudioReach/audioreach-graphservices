@@ -139,7 +139,8 @@ spf_sources = ./api/apm/apm_api.h \
                 ./api/modules/us_tone_renderer_api.h \
                 ./api/modules/mma_api.h \
                 ./api/modules/sound_dose_api.h \
-                ./api/modules/sdz_api.h
+                ./api/modules/sdz_api.h \
+                ./api/modules/fnn_plus_calibration_api_fvxv.h
 
 asps_sources =  ./api/asps/asps_ads_usecase_api.h \
                 ./api/asps/asps_upd_usecase_api.h \
