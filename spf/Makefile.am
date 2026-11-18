@@ -140,6 +140,8 @@ spf_sources = ./api/apm/apm_api.h \
                 ./api/modules/mma_api.h \
                 ./api/modules/sound_dose_api.h \
                 ./api/modules/sdz_api.h \
+                ./api/modules/miqster_api.h \
+                ./api/modules/rx_haptics_shmem_api.h \
                 ./api/modules/fnn_plus_calibration_api_fvxv.h
 
 asps_sources =  ./api/asps/asps_ads_usecase_api.h \
@@ -156,7 +158,6 @@ spf_include_HEADERS = $(spf_sources)
 asps_includedir = $(includedir)/spf/asps
 asps_include_HEADERS = $(asps_sources)
 
-#LIBRARY for LE apps
 lib_LTLIBRARIES = libar-spfhdrs.la
 libar_spfhdrs_la_CC = @CC@
 libar_spfhdrs_la_SOURCES = $(spf_sources) $(asps_sources)

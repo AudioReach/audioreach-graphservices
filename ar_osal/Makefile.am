@@ -37,7 +37,6 @@ osal_c_sources = ./src/linux/ar_osal_file_io.c \
                  ./src/linux/qcom/ar_osal_servreg.c \
                  ./src/linux/qcom/dyn_pd/ar_osal_dyn_pd.c
 
-
 if ARGS_VENDOR_QCOM
 if AUDIO_DMA_SUPPORT
 osal_c_sources += ./src/linux/qcom/ar_osal_shmem_db.c \
@@ -47,6 +46,7 @@ else # Use ion based shmem implementation.
 osal_c_sources += ./src/linux/qcom/ar_osal_shmem_ion.c
 endif
 else #!ARGS_VENDOR_QCOM
+
 if AUDIO_DMA_SUPPORT
 osal_c_sources += ./src/linux/ar_osal_shmem_phy.c
 else
@@ -80,6 +80,22 @@ endif
 
 libar_osal_la_LIBADD = -lrt -lpthread
 
+if USE_PD_NOTIFIER
+AM_CFLAGS += @QMIF_CFLAGS@ @PDMAPPER_CFLAGS@ @PDNOTIFIER_CFLAGS@
+libar_osal_la_LIBADD += @QMIF_LIBS@ @PDMAPPER_LIBS@ @PDNOTIFIER_LIBS@
+AM_CFLAGS += -DAR_OSAL_USE_PD_NOTIFIER
+endif
+
+if SPF_RESTART_DISABLED
+AM_CFLAGS += -DAR_OSAL_SPF_RESTART_DISABLED
+endif
+
+if TARGET_AUDIO_DYNAMIC_PD_ENABLED
+osal_c_sources += ./src/linux/qcom/dyn_pd/cdsp_dyn_pd_stub.c
+AM_CFLAGS += -DAR_OSAL_USE_DYNAMIC_PD
+libar_osal_la_LIBADD += -ladsprpc
+endif
+
 if CUTILS_SUPPORTED
 libar_osal_la_LIBADD += -lcutils -llog
 AM_CFLAGS += -DAR_OSAL_USE_CUTILS
@@ -90,18 +106,18 @@ AM_CFLAGS += -DION_DRIVER_UNSUPPORTED
 endif
 
 if USE_GLIB
-libar_osal_la_LIBADD += -lglib-2.0
-AM_CFLAGS += $(GLIB_CFLAGS) -D_GNU_SOURCE -include glib.h
+libar_osal_la_LIBADD += $(GLIB_LIBS)
+AM_CFLAGS += $(GLIB_CFLAGS) -include glib.h
+endif
+
+if USE_G_STR_FUNC
+AM_CFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
 endif
 
 if USE_DUMMY_DIAG
 #dummy diag, do not link real diag libs
 else
-libar_osal_la_LIBADD += -ldiag
-endif
-
-if USE_G_STR_FUNC
-AM_CFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
+libar_osal_la_LIBADD += -llog -ldiag
 endif
 
 lib_includedir = $(includedir)
