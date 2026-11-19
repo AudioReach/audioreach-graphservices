@@ -49,3 +49,27 @@ LOCAL_CFLAGS += -DPLATFORM_SLATE
 endif
 
 include $(BUILD_SHARED_LIBRARY)
+
+# Define installation paths and generate .pc file from template
+include $(CLEAR_VARS)
+
+LOCAL_MODULE        := gpr_pc
+LOCAL_MODULE_STEM   := gpr.pc
+LOCAL_MODULE_OWNER  := qti
+LOCAL_MODULE_TAGS   := optional
+LOCAL_VENDOR_MODULE := true
+LOCAL_MODULE_CLASS  := ETC
+LOCAL_MODULE_PATH   := $(TARGET_OUT_VENDOR_SHARED_LIBRARIES)/pkgconfig
+
+include $(BUILD_SYSTEM)/base_rules.mk
+
+$(LOCAL_BUILT_MODULE): $(LOCAL_PATH)/gpr.pc.in
+	@echo "Generate: $@"
+	$(hide) mkdir -p $(dir $@)
+	$(hide) sed \
+		-e 's|@prefix@|/vendor|g' \
+		-e 's|@exec_prefix@|$${prefix}|g' \
+		-e 's|@libdir@|$${exec_prefix}/lib|g' \
+		-e 's|@includedir@|$${prefix}/include|g' \
+		-e 's|@LT_VERSION@|1.0.0|g' \
+		$< > $@
