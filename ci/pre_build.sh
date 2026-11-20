@@ -24,7 +24,14 @@ if [ ! -d "${GITHUB_WORKSPACE}/install" ]; then
         echo "Failed to fetch target_image.json from $url" >&2
         exit 1
     fi
-    if aws s3 cp s3://qli-prd-audior-gh-artifacts/AudioReach/meta-audioreach/post_merge_build/${SDK_NAME} "${GITHUB_WORKSPACE}"; then
+    # The SDKs are published under post_merge_build/<meta-audioreach branch>/<run>/
+    branch=$(jq -r 'to_entries[0].value.Meta_audioreach_branch // "master"' target_image.json)
+    sdk_key=$(aws s3api list-objects-v2 --bucket qli-prd-audior-gh-artifacts \
+        --prefix "AudioReach/meta-audioreach/post_merge_build/${branch}/" --output json |
+        jq -r --arg name "${SDK_NAME}" '(.Contents // [])
+            | map(select((.Key | split("/") | last) == $name))
+            | sort_by(.LastModified, .Key) | last | .Key // empty') || sdk_key=""
+    if [ -n "${sdk_key}" ] && aws s3 cp "s3://qli-prd-audior-gh-artifacts/${sdk_key}" "${GITHUB_WORKSPACE}"; then
         echo "SDK downloaded successfully."
         chmod 777 "${GITHUB_WORKSPACE}/${SDK_NAME}"
     else
