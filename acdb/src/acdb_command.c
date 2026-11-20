@@ -586,7 +586,13 @@ int32_t TagDataSearchLut(AcdbGraphKeyVector *tkv,
         + 2 * sizeof(uint32_t);
 	//sz_tag_data_lut = num_tag_key_vector_entries * sz_tag_key_vector_entry;
 
-	/* Number of keys for this LUT must match the
+	if (tkv->num_keys == 0 || tkv->num_keys > ACDB_MAX_KEY_COUNT)
+    {
+        ACDB_ERR("Error[%d]: Invalid TKV key count %d", AR_EBADPARAM, tkv->num_keys);
+        return AR_EBADPARAM;
+    }
+
+     /* Number of keys for this LUT must match the
      * number of keys in the input */
 	if (key_table_header.num_keys != tkv->num_keys)
 	{

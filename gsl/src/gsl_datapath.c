@@ -353,7 +353,7 @@ static uint32_t ext_mem_cache_get_entry(uint32_t proc_id,
 
 	/* map inside the global lock in case 2 graphs call on the same handle */
 	rc = gsl_shmem_map_extern_mem(ext_mem_data.alloc_handle,
-		ext_mem_data.alloc_size, proc_id, &ext_mem_cache.entries[i].shmem_data);
+		ext_mem_data.alloc_size, proc_id, &ext_mem_cache.entries[i].shmem_data, 0);
 	if (rc != AR_EOK) {
 		GSL_ERR("map extern mem failed rc=%d", rc);
 		GSL_MUTEX_LOCK(ext_mem_cache.entries[i].lock);
@@ -1849,11 +1849,25 @@ void gsl_data_path_deinit(struct gsl_data_path_info *dp_info)
 	if (GSL_DP_DATA_MODE(dp_info) == GSL_DATA_MODE_EXTERN_MEM)
 		ext_mem_cache_deinit();
 
+	/* unmap extern push-pull buffers that were mapped at configure time */
+	if (GSL_DP_DATA_MODE(dp_info) == GSL_DATA_MODE_EXTERN_PUSH_PULL) {
+		for (i = 0; i < dp_info->config.num_buffs; ++i) {
+			if (dp_info->buff_list[i].gsl_msg.shmem.handle) {
+				gsl_shmem_unmap_extern_mem(
+					dp_info->buff_list[i].gsl_msg.shmem);
+				dp_info->buff_list[i].gsl_msg.shmem.handle = NULL;
+			}
+		}
+		/* skip gsl_msg_free below since we used map_extern, not alloc */
+		goto free_md_buffs;
+	}
+
 	/* free data buffers, num_buffs will be 0 if data path not configured */
 	for (i = 0; i < dp_info->config.num_buffs; ++i)
 		gsl_msg_free(&dp_info->buff_list[i].gsl_msg);
 
 	/* free all oob metadata buffers */
+free_md_buffs:
 	if (dp_info->config.max_metadata_size > 0) {
 		for (i = 0; i < dp_info->md_buff_list_size; ++i) {
 			internal_md_buff = &dp_info->md_buff_list[i];
@@ -1874,6 +1888,111 @@ void gsl_data_path_deinit(struct gsl_data_path_info *dp_info)
 
 	gsl_signal_destroy(&dp_info->dp_signal);
 	ar_osal_mutex_destroy(dp_info->lock);
+}
+
+/**
+ * Configure external push-pull data path.
+ *
+ * Client provides two fd handles:
+ *   cfg->alloc_handles[0] — circular data buffer
+ *   cfg->pos_buf_handle   — position buffer (must be uncached on SPF side)
+ *
+ * GSL maps both via gsl_shmem_map_extern_mem(), stores them in:
+ *   buff_list[0] — circ buf
+ *   buff_list[1] — position buf
+ *
+ * Then sends PARAM_ID_SH_MEM_PULL_PUSH_MODE_CFG to SPF via
+ * gsl_dp_configure_pull_push_on_spf().
+ */
+int32_t gsl_dp_config_extern_push_pull(struct gsl_data_path_info *dp_info,
+	struct gsl_cmd_configure_datapath_read_write_params *cfg,
+	struct gsl_signal *signal, uint32_t proc_id)
+{
+	int32_t rc = AR_EOK;
+
+	if (!dp_info || !cfg || !cfg->alloc_handles)
+		return AR_EBADPARAM;
+
+	GSL_DBG("gsl_dp_config_extern_push_pull: enter buff_size=%u pos_buf_hdl=0x%llx circ_hdl=0x%llx",
+		cfg->buff_size, cfg->pos_buf_handle, cfg->alloc_handles[0]);
+
+	/* push-pull always uses exactly 1 circ buf + 1 pos buf */
+	if (cfg->num_buffs != 1) {
+		GSL_ERR("extern push-pull: num_buffs must be 1 (got %d)",
+			cfg->num_buffs);
+		return AR_EBADPARAM;
+	}
+
+	if (!cfg->pos_buf_handle) {
+		GSL_ERR("extern push-pull: pos_buf_handle must be non-zero");
+		return AR_EBADPARAM;
+	}
+
+	if (dp_info->config.num_buffs > 0) {
+		GSL_ERR("extern push-pull dp already configured, deinit first");
+		return AR_EALREADY;
+	}
+
+	/* internally we always have 2 buffs: [0]=circ, [1]=pos */
+	dp_info->config.num_buffs = 2;
+	dp_info->config.buff_size = cfg->buff_size;
+	dp_info->config.max_metadata_size = cfg->max_metadata_size;
+	dp_info->config.attributes = cfg->attributes;
+
+	/* allocate internal buffer list for 2 entries */
+	dp_info->buff_list = gsl_mem_zalloc(2 * sizeof(struct gsl_buff_internal));
+	if (!dp_info->buff_list) {
+		rc = AR_ENOMEMORY;
+		goto free_list;
+	}
+
+	/* map circ buf fd */
+	rc = gsl_shmem_map_extern_mem(cfg->alloc_handles[0],
+		cfg->buff_size, proc_id,
+		&dp_info->buff_list[0].gsl_msg.shmem, 0);
+	if (rc) {
+		GSL_ERR("map extern circ buf failed fd=0x%llx rc=%d",
+			cfg->alloc_handles[0], rc);
+		goto free_list;
+	}
+	GSL_INFO("extern push-pull circ buf mapped: fd=0x%llx spf_addr=0x%llx",
+		cfg->alloc_handles[0],
+		dp_info->buff_list[0].gsl_msg.shmem.spf_addr);
+
+	/* map pos buf fd — must be uncached so ADSP writes are visible to GVM */
+	rc = gsl_shmem_map_extern_mem(cfg->pos_buf_handle,
+		sizeof(struct sh_mem_pull_push_mode_position_buffer_t), proc_id,
+		&dp_info->buff_list[1].gsl_msg.shmem,
+		GSL_SHMEM_DEDICATED_PAGE | GSL_SHMEM_MAP_UNCACHED);
+	if (rc) {
+		GSL_ERR("map extern pos buf failed fd=0x%llx rc=%d",
+			cfg->pos_buf_handle, rc);
+		goto unmap_circ;
+	}
+	GSL_INFO("extern push-pull pos buf mapped: fd=0x%llx spf_addr=0x%llx",
+		cfg->pos_buf_handle,
+		dp_info->buff_list[1].gsl_msg.shmem.spf_addr);
+
+	/* send PARAM_ID_SH_MEM_PULL_PUSH_MODE_CFG to SPF */
+	rc = gsl_dp_configure_pull_push_on_spf(dp_info, signal);
+	if (rc) {
+		GSL_ERR("configure push-pull on SPF failed rc=%d", rc);
+		goto unmap_pos;
+	}
+
+	return AR_EOK;
+
+unmap_pos:
+	gsl_shmem_unmap_extern_mem(dp_info->buff_list[1].gsl_msg.shmem);
+	dp_info->buff_list[1].gsl_msg.shmem.handle = NULL;
+unmap_circ:
+	gsl_shmem_unmap_extern_mem(dp_info->buff_list[0].gsl_msg.shmem);
+	dp_info->buff_list[0].gsl_msg.shmem.handle = NULL;
+free_list:
+	gsl_mem_free(dp_info->buff_list);
+	dp_info->buff_list = NULL;
+	gsl_memset(&dp_info->config, 0, sizeof(dp_info->config));
+	return rc;
 }
 
 int32_t gsl_dp_config_data_path(struct gsl_data_path_info *dp_info,
@@ -1987,6 +2106,26 @@ int32_t gsl_dp_config_data_path(struct gsl_data_path_info *dp_info,
 		if (max_rw_cmd_sz > gpr_pkt_info.bytes_per_min_size_packet)
 			dp_info->oob_metadata_flag = true;
 		break;
+
+	case GSL_DATA_MODE_EXTERN_PUSH_PULL:
+		if (!dp_info->is_shmem_supported) {
+			rc = AR_EUNSUPPORTED;
+			goto exit;
+		}
+		/*
+		 * For EXTERN_PUSH_PULL the caller must use
+		 * GSL_CMD_CONFIGURE_DP_WRITE_PARAMS or GSL_CMD_CONFIGURE_DP_READ_PARAMS
+		 * with gsl_cmd_configure_datapath_read_write_params. The struct is
+		 * layout-compatible with gsl_cmd_configure_read_write_params (same
+		 * fields in same order), with alloc_handles and pos_buf_handle
+		 * appended at the end. Cast here to retrieve the fd fields.
+		 */
+		rc = gsl_dp_config_extern_push_pull(dp_info,
+			(struct gsl_cmd_configure_datapath_read_write_params *)cfg,
+			push_pull_cfg_signal, proc_id);
+		if (rc)
+			GSL_ERR("configure extern push-pull data path failed %d", rc);
+		goto exit;
 
 	default:
 		GSL_ERR("invalid data mode %d", GSL_DP_DATA_MODE(dp_info));
@@ -2360,7 +2499,9 @@ int32_t gsl_dp_get_buff_info(struct gsl_data_path_info *dp_info,
 		return AR_EBADPARAM;
 
 	if ((dp_info->config.attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) ==
-		GSL_DATA_MODE_PUSH_PULL)
+		GSL_DATA_MODE_PUSH_PULL ||
+	    (dp_info->config.attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) ==
+		GSL_DATA_MODE_EXTERN_PUSH_PULL)
 		/* Do not expose the push pull position buffer */
 		num_dp_buffs = 1;
 	else
@@ -2386,13 +2527,14 @@ int32_t gsl_dp_get_pos_buff_info(struct gsl_data_path_info *dp_info,
 	if (!dp_info || !cfg)
 		return AR_EBADPARAM;
 
-	if (GSL_DP_DATA_MODE(dp_info) != GSL_DATA_MODE_PUSH_PULL)
+	if (GSL_DP_DATA_MODE(dp_info) != GSL_DATA_MODE_PUSH_PULL &&
+	    GSL_DP_DATA_MODE(dp_info) != GSL_DATA_MODE_EXTERN_PUSH_PULL)
 		return AR_EUNSUPPORTED;
 
 	if (cfg->num_buffs >= 1) {
 		/*
-		 * note in push_pull mode first internal buffer is data and next
-		 * internal buffer is position buffer ALWAYS
+		 * note in push_pull / extern_push_pull mode first internal buffer
+		 * is data and next internal buffer is position buffer ALWAYS
 		 */
 		cfg->buffs[0].addr = dp_info->buff_list[1].gsl_msg.shmem.v_addr;
 		cfg->buffs[0].metadata = dp_info->buff_list[1].gsl_msg.shmem.metadata;
@@ -2537,3 +2679,4 @@ int32_t gsl_dp_queue_read_buffers_to_spf(struct gsl_data_path_info *dp_info)
 
 	return rc;
 }
+

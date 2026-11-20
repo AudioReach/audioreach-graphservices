@@ -26,6 +26,7 @@ extern "C" {
 #define GSL_DATA_MODE_NON_BLOCKING 0x2 /**< heap memory mode non-blocking */
 #define GSL_DATA_MODE_PUSH_PULL 0x3 /**< push-pull mode */
 #define GSL_DATA_MODE_EXTERN_MEM 0x4 /**< external memory mode */
+#define GSL_DATA_MODE_EXTERN_PUSH_PULL 0x5 /**< external push-pull mode */
 
 /**< 2 bits to control datapath set up */
 #define GSL_ATTRIBUTES_DATAPATH_SETUP_MASK 0x18
@@ -191,6 +192,22 @@ enum gsl_cmd_id {
 	 * and property_values
 	 */
 	GSL_CMD_CLOSE_WITH_PROPS = 0x15,
+	/**
+	 * Configure parameters used for write data exchange with externally
+	 * pre-allocated buffers (EXTERN_PUSH_PULL mode).
+	 * Payload: struct gsl_cmd_configure_datapath_read_write_params
+	 * Must be used when attributes data_mode is
+	 * GSL_DATA_MODE_EXTERN_PUSH_PULL.
+	 */
+	GSL_CMD_CONFIGURE_DP_WRITE_PARAMS = 0x16,
+	/**
+	 * Configure parameters used for read data exchange with externally
+	 * pre-allocated buffers (EXTERN_PUSH_PULL mode).
+	 * Payload: struct gsl_cmd_configure_datapath_read_write_params
+	 * Must be used when attributes data_mode is
+	 * GSL_DATA_MODE_EXTERN_PUSH_PULL.
+	 */
+	GSL_CMD_CONFIGURE_DP_READ_PARAMS = 0x17,
 	GSL_CMD_MAX
 };
 
@@ -374,6 +391,8 @@ struct gsl_cmd_configure_read_write_params {
 	 * data_mode(Bits 0,1,2): One of GSL_DATA_MODE_SHMEM,
 	 * GSL_DATA_MODE_BLOCKING, GSL_DATA_MODE_NON_BLOCKING,
 	 * GSL_DATA_MODE_PUSH_PULL, GSL_DATA_MODE_EXTERN_MEM
+	 * (GSL_DATA_MODE_EXTERN_PUSH_PULL is NOT supported here, use 
+	 *  gsl_cmd_configure_datapath_read_write_params instead)
 	 * datapath_setup(Bits 3,4): one of GSL_DATAPATH_SETUP_DEFAULT,
 	 * GSL_DATAPATH_SETUP_ALLOC_SHMEM_ONLY,
 	 * GSL_DATAPATH_SETUP_SPF_PROVISION_ONLY
@@ -392,6 +411,69 @@ struct gsl_cmd_configure_read_write_params {
 	uint32_t platform_info;
 	/* maximum possible size of metadata for use case */
 	uint32_t max_metadata_size;
+};
+
+/**
+  * Cmd payload for GSL_CMD_CONFIGURE_DP_WRITE_PARAMS and
+  * GSL_CMD_CONFIGURE_DP_READ_PARAMS.
+  * Use this struct when GSL_DATA_MODE_EXTERN_PUSH_PULL is set;
+  * the client must pre-allocate the circular data buffer and
+  * position buffer.
+  */
+struct gsl_cmd_configure_datapath_read_write_params {
+	/**
+	 * max number of bytes in a single buffer. Must equal the total size of
+	 * the pre-allocated circular data buffer.
+	 */
+	uint32_t buff_size;
+	/**
+	 * Number of buffers. Must be 1 for EXTERN_PUSH_PULL; alloc_handles[0]
+	 * carries the fd for the circular data buffer.
+	 */
+	uint32_t num_buffs;
+	/**
+	 * In case of write, wait till number of bytes received from client goes
+	 * ABOVE this value before issuing START to SPF
+	 * In case of read, wait till client has read this many bytes before
+	 * issuing START to SPF
+	 * Set to 0 for immediate start
+	 */
+	uint32_t start_threshold;
+	/**
+	 * TBD, currently not supported
+	 */
+	uint32_t stop_threshold;
+	/**
+	 * Must have data_mode set to GSL_DATA_MODE_EXTERN_PUSH_PULL.
+	 * datapath_setup(Bits 3,4): one of GSL_DATAPATH_SETUP_DEFAULT,
+	 * GSL_DATAPATH_SETUP_ALLOC_SHMEM_ONLY,
+	 * GSL_DATAPATH_SETUP_SPF_PROVISION_ONLY
+	 */
+	uint32_t attributes;
+	/**
+	 * Optional tag used to queue read buffers before first gsl_graph_read
+	 * When set to 0, buffers are not queued until first gsl_graph_read call
+	 */
+	uint32_t shmem_ep_tag;
+	/**
+	 * Optional field for passing platform specific data to GSL, this can be
+	 * used for example to communicate some heap properties to osal layer.
+	 * Must be set to 0 for clients that dont have any specific platform data.
+	 */
+	uint32_t platform_info;
+	/* maximum possible size of metadata for use case */
+	uint32_t max_metadata_size;
+	/**
+	 * Array of num_buffs externally pre-allocated fd handles.
+	 * For EXTERN_PUSH_PULL, num_buffs must be 1 and alloc_handles[0]
+	 * is the fd for the circular data buffer.
+	 */
+	uint64_t *alloc_handles;
+	/**
+	 * fd handle for the position buffer (must be mapped uncached on SPF).
+	 * Must be non-zero for EXTERN_PUSH_PULL.
+	 */
+	uint64_t pos_buf_handle;
 };
 
 /** Cmd payload for GSL_CMD_ADD_GRAPH and GSL_CMD_CHANGE_GRAPH */
@@ -1381,3 +1463,4 @@ int32_t gsl_cshm_msg(gsl_mem_id_t  mem_id, uint32_t  offset, uint32_t  length, u
 #endif
 
 #endif /* GSL_INTF_H */
+
