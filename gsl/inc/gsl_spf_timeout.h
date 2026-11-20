@@ -39,6 +39,7 @@ extern uint32_t GSL_GRAPH_OPEN_TIMEOUT_MS;
 extern uint32_t GSL_GRAPH_PREPARE_TIMEOUT_MS;
 extern uint32_t GSL_GRAPH_START_STOP_TIMEOUT_MS;
 extern uint32_t GSL_SPF_READ_WRITE_TIMEOUT_MS;
+extern uint32_t GSL_AMDB_LOAD_MODULES_TIMEOUT_MS;
 
 #if !defined(__GSL_GPR_STUB__) && (defined(_WIN32) || defined(_WIN64)) \
 	&& !defined(_KERNEL_MODE) && defined(ARSPF_WIN_PORTING)
@@ -48,6 +49,7 @@ extern uint32_t GSL_SPF_READ_WRITE_TIMEOUT_MS;
 #define GSL_GRAPH_PREPARE_TIMEOUT_MS_DEFAULT  (0)
 #define GSL_GRAPH_START_STOP_TIMEOUT_MS_DEFAULT (0)
 #define GSL_SPF_READ_WRITE_TIMEOUT_MS_DEFAULT ((3)*(1000))
+#define GSL_AMDB_LOAD_MODULES_TIMEOUT_MS_DEFAULT ((3)*(1000))
 #elif !defined(__GSL_GPR_STUB__) && (defined(_WIN32) || defined(_WIN64)) \
 	&& !defined(_KERNEL_MODE)
 /** WIN32/64 COSIM Mode requires longer delays(30 min) */
@@ -56,6 +58,7 @@ extern uint32_t GSL_SPF_READ_WRITE_TIMEOUT_MS;
 #define GSL_GRAPH_PREPARE_TIMEOUT_MS_DEFAULT  (0)
 #define GSL_GRAPH_START_STOP_TIMEOUT_MS_DEFAULT (0)
 #define GSL_SPF_READ_WRITE_TIMEOUT_MS_DEFAULT ((3600)*(1000))
+#define GSL_AMDB_LOAD_MODULES_TIMEOUT_MS_DEFAULT ((1800)*(1000))
 #elif defined(__GSL_GPR_STUB__)
 /**
  * unit-testing with GPR stub we increase the timeout due to APM sim globally
@@ -66,18 +69,20 @@ extern uint32_t GSL_SPF_READ_WRITE_TIMEOUT_MS;
 #define GSL_GRAPH_PREPARE_TIMEOUT_MS_DEFAULT  (2000)
 #define GSL_GRAPH_START_STOP_TIMEOUT_MS_DEFAULT  (5500)
 #define GSL_SPF_READ_WRITE_TIMEOUT_MS_DEFAULT  (60000LL) /* 1 min */
+#define GSL_AMDB_LOAD_MODULES_TIMEOUT_MS_DEFAULT (2000)
 #else
 #define GSL_SPF_TIMEOUT_MS_DEFAULT  (1000)
 #define GSL_GRAPH_OPEN_TIMEOUT_MS_DEFAULT  (4000)
 #define GSL_GRAPH_PREPARE_TIMEOUT_MS_DEFAULT  (2000)
 #define GSL_GRAPH_START_STOP_TIMEOUT_MS_DEFAULT  (5500)
 #define GSL_SPF_READ_WRITE_TIMEOUT_MS_DEFAULT  (1000)
+#define GSL_AMDB_LOAD_MODULES_TIMEOUT_MS_DEFAULT (5000)
 #endif
 
 /**
  * @h2xmlp_parameter   {"PARAM_ID_SPF_TIMEOUTS",
  *   PARAM_ID_SPF_TIMEOUTS}
- * @h2xmlp_description {Contains timeouts used for setting max wait 
+ * @h2xmlp_description {Contains timeouts used for setting max wait
  * 	 times for responses or operations between GSL and SPF}
  */
 struct spf_timeouts_value {
@@ -101,6 +106,10 @@ struct spf_timeouts_value {
 	 * @h2xmle_default      {0x3e8}
 	 */
 	uint32_t spf_read_write_timeout;
+	/** @h2xmle_description {Max wait time for AMDB load modules operation completion}
+	 * @h2xmle_default      {0x1388}
+	 */
+	uint32_t amdb_load_modules_timeout;
 };
 
 /**
