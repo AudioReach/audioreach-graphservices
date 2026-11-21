@@ -136,6 +136,12 @@ AC_ARG_WITH([msm_audio_ion_disable],
     [with_msm_audio_ion_disable=no])
 AM_CONDITIONAL([ION_DRIVER_NOT_SUPPORTED], [test "x${with_msm_audio_ion_disable}" = "xyes"])
 
+AC_ARG_WITH([mcs],
+    AS_HELP_STRING([Enable MCS support (default is no)]),
+    [with_mcs=$withval],
+    [with_mcs=no])
+AM_CONDITIONAL([MCS_ENABLED], [test "x${with_mcs}" = "xyes"])
+
 AC_ARG_WITH([ats_data_logging],
     AS_HELP_STRING([Use ATS data logging using Data Logging Service(DLS) (default is yes)]),
      [with_ats_data_logging=$withval],

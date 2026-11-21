@@ -12,6 +12,10 @@ if USE_G_STR_FUNC
 AM_CFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
 endif
 
+if MCS_ENABLED
+AM_CFLAGS += -DMCS_ENABLED
+endif
+
 AM_CFLAGS += -I$(top_srcdir)/ar_osal/api \
              -I$(top_srcdir)/acdb/api \
              -I$(top_srcdir)/acdb/inc \
