@@ -59,17 +59,21 @@ lib_LTLIBRARIES = libar-gpr.la
 libar_gpr_la_CC = @CC@
 libar_gpr_la_LIBADD = -lpthread $(top_builddir)/ar_osal/libar-osal.la
 if USE_GLIB
-libar_gpr_la_LIBADD += -lglib-2.0
+libar_gpr_la_LIBADD += $(GLIB_LIBS)
 AM_CFLAGS += $(GLIB_CFLAGS) -include glib.h
 endif
 
 if USE_G_STR_FUNC
-AM_CFLAGS += -Dstrlcpy=g_strlcpy
+AM_CFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
 endif
 
 if CUTILS_SUPPORTED
-libar_gpr_la_LIBADD += -lcutils
+libar_gpr_la_LIBADD += -lcutils -llog
 AM_CFLAGS += -DGPR_USE_CUTILS
+endif
+
+if ARGS_USE_SYSLOG
+AM_CFLAGS += -DGPR_USE_SYSLOG
 endif
 
 if USE_ARE_ON_APPS

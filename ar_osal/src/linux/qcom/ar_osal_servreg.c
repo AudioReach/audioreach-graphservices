@@ -550,7 +550,7 @@ void ar_osal_panic()
 */
 int32_t ar_osal_servreg_restart_service(ar_osal_servreg_t servreg_handle)
 {
-#ifndef AR_OSAL_USE_PD_NOTIFIER
+#if (!defined AR_OSAL_USE_PD_NOTIFIER || defined AR_OSAL_SPF_RESTART_DISABLED)
     return 1;
 #else
     int32_t rc = AR_EOK;

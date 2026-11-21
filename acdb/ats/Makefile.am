@@ -6,7 +6,10 @@ ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = -Wall \
             -Wundef \
             -O2
+
+if USE_GLIB
 AM_CFLAGS += @GLIB_CFLAGS@ -include glib.h
+endif
 
 if USE_G_STR_FUNC
 AM_CFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
@@ -18,7 +21,6 @@ AM_CFLAGS += -I$(top_srcdir)/ar_osal/api \
              -I$(top_srcdir)/gsl/api \
              -I$(top_srcdir)/gsl/rtc_api \
              -I$(top_srcdir)/gsl/dls_client_api
-
 
 AM_CFLAGS += -I ${srcdir}/inc \
              -I ${srcdir}/api \
@@ -40,7 +42,8 @@ AM_CFLAGS += -I ${srcdir}/inc \
 
 AM_CPPFLAGS = $(AM_CFLAGS)
 
-ats_headers = ./api/ats.h
+ats_headers = ./api/ats.h \
+              ./mcs/common/api/mcs_api.h
 
 ats_c_sources = ./src/ats.c \
                 ./src/ats_command.c \
@@ -60,7 +63,6 @@ ats_c_sources = ./src/ats.c \
                 ./transports/tcpip_server/src/tcpip_socket_util.cpp \
                 ./dls/common/src/ats_dls.c
 
-#Includes
 lib_includedir = $(includedir)
 lib_include_HEADERS = $(ats_headers)
 requiredlibs = -lrt
@@ -69,8 +71,13 @@ lib_LTLIBRARIES = libar-ats.la
 libar_ats_la_CC = @CC@
 libar_ats_la_LIBADD = -lar-osal -L$(top_builddir)/ar_osal
 libar_ats_la_LIBADD += -lar-acdb -L$(top_builddir)/acdb
+
+if USE_GLIB
+libar_ats_la_LIBADD += @GLIB_LIBS@
+endif
+
 if CUTILS_SUPPORTED
-libar_ats_la_LIBADD += -lcutils
+libar_ats_la_LIBADD += -lcutils -llog
 AM_CFLAGS += -DAR_ATS_USE_CUTILS
 endif
 
@@ -107,12 +114,6 @@ AM_CPPFLAGS += -I$(srcdir)/transports/tcpip_gateway/inc
 AM_CPPFLAGS += -I$(top_srcdir)/ar_osal/api
 AM_CPPFLAGS += -I$(top_srcdir)/acdb/ats/sockets/common/api/
 
-AM_CPPFLAGS += @GLIB_CFLAGS@ -include glib.h
-
-if USE_G_STR_FUNC
-AM_CPPFLAGS += -Dstrlcpy=g_strlcpy -Dstrlcat=g_strlcat
-endif
-
 gateway_sources = ./transports/tcpip_gateway/src/tcpip_gateway_main.cpp \
                   ./transports/tcpip_gateway/src/tcpip_gateway_cmd_server.cpp \
                   ./transports/tcpip_gateway/src/tcpip_gateway_dls_server.cpp \
@@ -123,6 +124,9 @@ bin_PROGRAMS = ats_gateway
 ats_gateway_CC = @CC@
 ats_gateway_SOURCES = $(gateway_sources)
 ats_gateway_LDADD = $(top_builddir)/ar_osal/libar-osal.la
+if USE_GLIB
+ats_gateway_LDADD += @GLIB_LIBS@
+endif
 ats_gateway_CPPFLAGS = $(AM_CPPFLAGS)
 
 if USES_ATS_DATA_LOGGING
