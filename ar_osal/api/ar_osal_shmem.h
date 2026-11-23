@@ -292,6 +292,44 @@ int32_t ar_shmem_get_uid(uint64_t alloc_handle, uint64_t *uid);
  */
 int32_t ar_shmem_deinit(void);
 
+/**
+ * \brief ar_shmem_sync_for_device.
+ * Ends CPU access to a shared-memory allocation and hands cache
+ * ownership to the DSP (DMA_BUF_SYNC_END), flushing any pending CPU
+ * writes so the DSP observes them. Caller must have finished all CPU
+ * writes to the buffer before calling this, and must not touch the
+ * buffer from the CPU again until a matching ar_shmem_sync_for_cpu()
+ * call completes. Intended for transient command/calibration buffers
+ * only; persistent or asynchronous DSP-owned allocations must not use
+ * this per-command ownership transition. Caller is also responsible
+ * for ensuring the allocation's backing fd is not shared with any
+ * other concurrently-live allocation (e.g. by requesting
+ * GSL_SHMEM_DEDICATED_PAGE at the GSL layer): DMA_BUF_IOCTL_SYNC has
+ * no offset/length and always transitions ownership of the whole fd.
+ *
+ * \param[in]   info: pointer to ar_shmem_info for the allocation.
+ * \return
+ *  0 -- Success
+ *  Nonzero -- Failure
+ */
+int32_t ar_shmem_sync_for_device(ar_shmem_info *info);
+
+/**
+ * \brief ar_shmem_sync_for_cpu.
+ * Reclaims CPU access to a shared-memory allocation after the DSP has
+ * finished using it (DMA_BUF_SYNC_START), invalidating the CPU cache
+ * so any DSP writes become visible. Caller must only invoke this after
+ * the DSP has confirmed completion of the specific transient operation
+ * this allocation was used for (e.g. a synchronous command response),
+ * never while the DSP may still be reading or writing the buffer.
+ *
+ * \param[in]   info: pointer to ar_shmem_info for the allocation.
+ * \return
+ *  0 -- Success
+ *  Nonzero -- Failure
+ */
+int32_t ar_shmem_sync_for_cpu(ar_shmem_info *info);
+
 #ifdef __cplusplus
 }
 #endif /*__cplusplus*/

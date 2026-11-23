@@ -75,3 +75,15 @@ int32_t ar_shmem_deinit(void)
     int32_t rc = are_on_apps ? ar_shmem_ap_deinit() : ar_shmem_dsp_deinit();
     return rc;
 }
+
+int32_t ar_shmem_sync_for_device(ar_shmem_info *info)
+{
+    /* Apps-side allocations are CPU-resident; no DSP cache ownership
+     * transition is required on this path. */
+    return are_on_apps ? AR_EOK : ar_shmem_dsp_sync_for_device(info);
+}
+
+int32_t ar_shmem_sync_for_cpu(ar_shmem_info *info)
+{
+    return are_on_apps ? AR_EOK : ar_shmem_dsp_sync_for_cpu(info);
+}

@@ -648,6 +648,75 @@ int32_t ar_shmem_dsp_free(_In_ ar_shmem_info *info)
     return status;
 }
 
+/*
+ * ar_shmem_dsp_cache_sync
+ *   Transfers cache ownership of the whole dma-buf fd backing info's
+ *   allocation. direction_flags is one of
+ *   (DMA_BUF_SYNC_START|DMA_BUF_SYNC_RW) when handing the buffer to the
+ *   DSP, or (DMA_BUF_SYNC_END|DMA_BUF_SYNC_RW) when reclaiming it for the
+ *   CPU. phase is a short literal used only for diagnostic logging.
+ *   Caller is responsible for ensuring the allocation is not sharing its
+ *   backing fd with any other concurrently-live allocation.
+ */
+static int32_t ar_shmem_dsp_cache_sync(ar_shmem_info *info, uint32_t direction_flags,
+    const char *phase)
+{
+    int32_t status = AR_EOK;
+    ar_shmem_handle_data_t *shmem_handle = NULL;
+    struct dma_buf_sync sync;
+
+    if (NULL == info || NULL == info->vaddr || 0 == info->metadata) {
+        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "%s:%s: invalid info %pK\n", __func__, phase, info);
+        return AR_EBADPARAM;
+    }
+
+    shmem_handle = (ar_shmem_handle_data_t *)(intptr_t)info->metadata;
+    if (NULL == shmem_handle || shmem_handle->heap_fd <= 0) {
+        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG, "%s:%s: invalid shmem_handle/fd\n", __func__, phase);
+        return AR_EBADPARAM;
+    }
+
+    AR_LOG_VERBOSE(AR_OSAL_SHMEM_LOG_TAG,
+        "%s:%s: fd(%d)|buf_size(0x%zx)|flags(0x%x)|owner_before(%s)\n",
+        __func__, phase, shmem_handle->heap_fd, info->buf_size, direction_flags,
+        shmem_handle->dma_sync_flag ? "dsp" : "cpu");
+
+    sync.flags = direction_flags;
+    status = ioctl(shmem_handle->heap_fd, DMA_BUF_IOCTL_SYNC, &sync);
+    if (status) {
+        AR_LOG_ERR(AR_OSAL_SHMEM_LOG_TAG,
+            "%s:%s: DMA_BUF_IOCTL_SYNC failed, fd(%d)|flags(0x%x)|errno:%d\n",
+            __func__, phase, shmem_handle->heap_fd, direction_flags, status);
+        return AR_EUNEXPECTED;
+    }
+
+    shmem_handle->dma_sync_flag = (direction_flags & DMA_BUF_SYNC_START) ? true : false;
+    AR_LOG_VERBOSE(AR_OSAL_SHMEM_LOG_TAG, "%s:%s: fd(%d)|owner_after(%s)|status(0)\n",
+        __func__, phase, shmem_handle->heap_fd, shmem_handle->dma_sync_flag ? "dsp" : "cpu");
+
+    return AR_EOK;
+}
+
+/*
+ * \brief ar_shmem_dsp_sync_for_device
+ *   See ar_osal_shmem.h:ar_shmem_sync_for_device for contract.
+ */
+int32_t ar_shmem_dsp_sync_for_device(ar_shmem_info *info)
+{
+    return ar_shmem_dsp_cache_sync(info, DMA_BUF_SYNC_END | DMA_BUF_SYNC_RW,
+        "sync_for_device");
+}
+
+/*
+ * \brief ar_shmem_dsp_sync_for_cpu
+ *   See ar_osal_shmem.h:ar_shmem_sync_for_cpu for contract.
+ */
+int32_t ar_shmem_dsp_sync_for_cpu(ar_shmem_info *info)
+{
+    return ar_shmem_dsp_cache_sync(info, DMA_BUF_SYNC_START | DMA_BUF_SYNC_RW,
+        "sync_for_cpu");
+}
+
 /**
  * \brief Helps map memory with SMMU an already allocated shared memory
  * for a give sub system.
