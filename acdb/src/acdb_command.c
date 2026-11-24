@@ -5357,13 +5357,19 @@ int32_t AcdbGetSubgraphCalibration(AcdbAudioCalContextInfo *info,
 
         if (info->should_check_hw_accel)
         {
-            status = DataProcIsHwAccelParam(info->hw_accel_module_list_offset,
+            /*
+             * Use a local variable for HW Accel check result so that
+             * function-level status is not overwritten by AR_ENOTEXIST
+             * from non-target memory type parameters.
+             */
+            int32_t hw_status = DataProcIsHwAccelParam(
+                info->hw_accel_module_list_offset,
                 module_header.module_iid, module_header.parameter_id);
 
             switch (mem_type)
             {
             case ACDB_HW_ACCEL_MEM_DEFAULT:
-                if (AR_SUCCEEDED(status))
+                if (AR_SUCCEEDED(hw_status))
                 {
                     cur_dot_offset += sizeof(uint32_t);
                     continue;
