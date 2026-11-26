@@ -17,6 +17,7 @@ when       who      what, where, why
 --------    ------     -------------------------------------------------
 10/5/24     vvenna     Created File.
 ============================================================================*/
+#include "module_cmn_api.h"
 #include "imcl_fwk_intent_api.h"
 #include "contexts_api.h"
 
@@ -71,6 +72,8 @@ when       who      what, where, why
  *      - #PARAM_ID_MMA_ILD_PND_CONFIG \n
  *      - #PARAM_ID_MMA_ILD_LMS_CONFIG \n
  *      - #PARAM_ID_MMA_LVD_CONFIG \n
+ *      - #PARAM_ID_ENPU_POWER_LATENCY \n
+ *      - #PARAM_ID_MODULE_CMN_VOTES \n
  *
  * Supported Input Media Format: \n
  *  - Data Format          : FIXED_POINT \n
@@ -93,6 +96,13 @@ when       who      what, where, why
 
     @h2xmlm_ToolPolicy           {Calibration}
     @{                   <-- Start of the Module -->
+
+    @h2xml_Select        {"param_id_enpu_power_latency_t"}
+    @h2xmlm_InsertParameter
+
+    @h2xml_Select        {"param_id_module_cmn_votes_t"}
+    @h2xmlm_InsertParameter
+
 */
 
 #define PARAM_ID_MMA_STATIC_CFG 0x08001AC4
@@ -216,7 +226,7 @@ typedef struct param_id_mma_mode_bit_config_t
     @h2xmle_visibility      {hide}
     @h2xmle_bitfieldEnd
 
-    @h2xmle_bitfield        {0xFFFFFF00}
+    @h2xmle_bitfield        {0x7FFFFF00}
     @h2xmle_bitName         {Bit_30_8}
     @h2xmle_description     {Reserved}
     @h2xmle_visibility      {hide}
@@ -1046,6 +1056,56 @@ typedef struct param_id_mma_synthetic_modality_detection_duration_t
 #include "spf_end_pack.h"
 ;
 
+#define PARAM_ID_MMA_MONITOR_INFO 0x08001BE9
+
+/** @h2xmlp_parameter   {"PARAM_ID_MMA_MONITOR_INFO", PARAM_ID_MMA_MONITOR_INFO}
+    @h2xmlp_description {parameter to monitor module stats}
+    @h2xmlp_toolPolicy  {RTC_READONLY }*/
+
+#include "spf_begin_pack.h"
+#include "spf_begin_pragma.h"
+typedef struct param_id_mma_monitor_info_t
+{
+
+    uint32_t num_elements;
+    /**< @h2xmle_description {number of elements}
+    @h2xmle_range    {1..30}
+    @h2xmle_default {1}  */
+#ifdef __H2XML__
+    int32_t param_value[0];
+    /**< @h2xmle_description  {parameter values}
+         @h2xmle_variableArraySize {num_elements}
+         @h2xmle_default {0} */
+#endif
+
+} param_id_mma_monitor_info_t
+#include "spf_end_pragma.h"
+#include "spf_end_pack.h"
+;
+
+#define PARAM_ID_MMA_SNS_ARRIVAL_THRESHOLD_TIME_CONFIG 0x08001BED
+
+/** @h2xmlp_parameter   {"PARAM_ID_MMA_SNS_ARRIVAL_THRESHOLD_TIME_CONFIG", PARAM_ID_MMA_SNS_ARRIVAL_THRESHOLD_TIME_CONFIG}
+    @h2xmlp_description {Configures the minimum sensor-to-audio event propagation latency threshold in milliseconds.
+                         When the observed latency exceeds this threshold, MMA reduces the active detection timeout
+                         by the elapsed time to compensate for stale cached sensor events.
+                         When the observed latency is within this threshold, the event can be considered as a real-time. the original detection timeout is applied unchanged.}
+    @h2xmlp_toolPolicy  {Calibration}*/
+
+#include "spf_begin_pack.h"
+#include "spf_begin_pragma.h"
+typedef struct param_id_mma_sns_arrival_threshold_time_config_t
+{
+    uint32_t sns_arrival_time_ms;
+    /**< @h2xmle_description {Configurable latency time threshold between Sensors to Audio.}
+         @h2xmle_default     {300}
+         @h2xmle_range       {0..0xFFFFFFFF}
+         @h2xmle_policy      {Advanced} */
+} param_id_mma_sns_arrival_threshold_time_config_t
+#include "spf_end_pragma.h"
+#include "spf_end_pack.h"
+;
+
 #define PARAM_ID_MMA_RESET 0x08001AD0
 
 /**@h2xmlp_emptyParameter {"PARAM_ID_MMA_RESET", PARAM_ID_MMA_RESET}
@@ -1140,6 +1200,29 @@ typedef struct event_id_mma_detection_event_t
      @h2xmle_policy        {Advanced} */
 
 } event_id_mma_detection_event_t;
+
+#define EVENT_ID_MMA_DETECTION_EVENT_V2 0x08001C16
+/** @h2xmlp_parameter   {"EVENT_ID_MMA_DETECTION_EVENT_V2",
+                          EVENT_ID_MMA_DETECTION_EVENT_V2}
+    @h2xmlp_description {Version 2 MMA detection event. Extends the original
+                          detection event with the unread audio length returned
+                          by the Audio DAM in microseconds.}
+    @h2xmlp_toolPolicy  {NO_SUPPORT}*/
+
+#include "spf_begin_pack.h"
+#include "spf_begin_pragma.h"
+typedef struct event_id_mma_detection_event_v2_t
+{
+    event_id_mma_detection_event_t detection_event;
+    /**< @h2xmle_description {Original MMA detection event payload.} */
+
+    uint32_t ftrt_len_us;
+    /**< @h2xmle_description {FTRT audio length reported by Audio DAM, in microseconds.} */
+
+} event_id_mma_detection_event_v2_t
+#include "spf_end_pragma.h"
+#include "spf_end_pack.h"
+;
 
 /**    @}                   <-- End of the Module -->*/
 
