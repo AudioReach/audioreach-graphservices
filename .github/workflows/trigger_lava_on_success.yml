@@ -8,13 +8,13 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  checks: write
-  pull-requests: write
 
 jobs:
   prepare_matrix:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     outputs:
       test_matrix: ${{ steps.matrix.outputs.test_matrix }}
@@ -87,9 +87,16 @@ jobs:
 
   trigger_lava:
     needs: prepare_matrix
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+      pull-requests: write
+      statuses: write
     uses: Audioreach/audioreach-workflows/.github/workflows/test.yml@master
     secrets: inherit
     with:
       build_matrix: ${{ needs.prepare_matrix.outputs.test_matrix }}
       build_urls: ${{ needs.prepare_matrix.outputs.build_urls }}
+      report_sha: ${{ github.event.workflow_run.head_sha }}
 
