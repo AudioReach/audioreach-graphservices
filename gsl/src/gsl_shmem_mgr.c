@@ -1716,6 +1716,51 @@ uint64_t gsl_shmem_get_metadata(
 	return (alloc_data->handle)->shmem_info.metadata;
 }
 
+/**
+ * See gsl_shmem_mgr.h for the ownership-transfer contract. Both
+ * functions refuse to operate on an allocation that was not forced into
+ * the dedicated bin, since DMA_BUF_IOCTL_SYNC has no offset/length and
+ * would otherwise transition cache ownership for the whole page,
+ * including any unrelated sibling blocks still live on it.
+ */
+int32_t gsl_shmem_sync_for_device(const struct gsl_shmem_alloc_data *alloc_data)
+{
+	struct gsl_shmem_page *page = NULL;
+
+	if (!alloc_data || !alloc_data->handle) {
+		GSL_ERR("invalid alloc_data");
+		return AR_EBADPARAM;
+	}
+
+	page = alloc_data->handle;
+	if (page->bin_idx != GSL_SHMEM_MGR_BIN_IDX_DEDICATED) {
+		GSL_ERR("refusing whole-fd sync for non-dedicated bin_idx %u, would "
+			"race with sibling blocks sharing this page", page->bin_idx);
+		return AR_EBADPARAM;
+	}
+
+	return ar_shmem_sync_for_device(&page->shmem_info);
+}
+
+int32_t gsl_shmem_sync_for_cpu(const struct gsl_shmem_alloc_data *alloc_data)
+{
+	struct gsl_shmem_page *page = NULL;
+
+	if (!alloc_data || !alloc_data->handle) {
+		GSL_ERR("invalid alloc_data");
+		return AR_EBADPARAM;
+	}
+
+	page = alloc_data->handle;
+	if (page->bin_idx != GSL_SHMEM_MGR_BIN_IDX_DEDICATED) {
+		GSL_ERR("refusing whole-fd sync for non-dedicated bin_idx %u, would "
+			"race with sibling blocks sharing this page", page->bin_idx);
+		return AR_EBADPARAM;
+	}
+
+	return ar_shmem_sync_for_cpu(&page->shmem_info);
+}
+
 int32_t gsl_shmem_hyp_assign(gsl_shmem_handle_t alloc_handle,
 	uint64_t dest_sys, uint64_t src_sys)
 {

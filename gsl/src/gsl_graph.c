@@ -855,9 +855,16 @@ static int32_t gsl_graph_send_nonpersist_cal(struct gsl_graph *graph,
 		return rc;
 	}
 
-	rc = gsl_msg_alloc(APM_CMD_SET_CFG, graph->src_port, GSL_GPR_DST_PORT_APM,
-		sizeof(*cmd_header), 0, graph->proc_id, rsp_struct.buf_size, false,
-		&gsl_msg);
+	/*
+	 * Force a dedicated backing page (not the shared scratch bin) so the
+	 * whole-fd DMA_BUF_IOCTL_SYNC below cannot race with an unrelated
+	 * sibling block's CPU writes on the same page. See
+	 * config2-manifests/06-cache-coherency-design-decision.md.
+	 */
+	rc = gsl_msg_alloc_ext(APM_CMD_SET_CFG, graph->src_port,
+		GSL_GPR_DST_PORT_APM, sizeof(*cmd_header), 0, graph->proc_id,
+		rsp_struct.buf_size, false, GSL_GET_SPF_SS_MASK(graph->proc_id),
+		GSL_SHMEM_DEDICATED_PAGE, 0, &gsl_msg);
 	if (rc) {
 		GSL_ERR("gsl msg alloc failed %d", rc);
 		return rc;
@@ -877,6 +884,15 @@ static int32_t gsl_graph_send_nonpersist_cal(struct gsl_graph *graph,
 	cmd_header->payload_address_msw = (uint32_t)(gsl_msg.shmem.spf_addr >> 32);
 	cmd_header->payload_size = rsp_struct.buf_size;
 
+	/* In-band messages have no shared-memory handle to synchronize. */
+	rc = gsl_msg.shmem.handle ?
+		gsl_shmem_sync_for_device(&gsl_msg.shmem) : AR_EOK;
+	if (rc) {
+		GSL_ERR("sync_for_device failed %d, opcode 0x%x size 0x%x", rc,
+			APM_CMD_SET_CFG, cmd_header->payload_size);
+		goto exit;
+	}
+
 	GSL_LOG_PKT("send_pkt", graph->src_port, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*cmd_header),	gsl_msg.payload,
 		cmd_header->payload_size);
@@ -885,6 +901,18 @@ static int32_t gsl_graph_send_nonpersist_cal(struct gsl_graph *graph,
 		&graph->graph_signal[GRAPH_CTRL_GRP2_CMD_SIG]);
 	if (rc)
 		GSL_ERR("send non-perist cal failed %d", rc);
+
+	{
+		int32_t sync_rc;
+
+		sync_rc = gsl_msg.shmem.handle ?
+			gsl_shmem_sync_for_cpu(&gsl_msg.shmem) : AR_EOK;
+
+		GSL_DBG("opcode=0x%x gpr_rsp_rc=%d sync_for_cpu_rc=%d size=0x%x",
+			APM_CMD_SET_CFG, rc, sync_rc, rsp_struct.buf_size);
+		if (sync_rc && !rc)
+			rc = sync_rc;
+	}
 
 exit:
 	gsl_msg_free(&gsl_msg);
@@ -3194,9 +3222,16 @@ static int32_t gsl_graph_open_sgids_and_connections(struct gsl_graph *graph,
 	 * Allocate shared memory to hold spf blob (sg data and connections)
 	 * for OPEN command and map on SPF
 	 */
-	rc = gsl_msg_alloc(APM_CMD_GRAPH_OPEN, graph->src_port,
+	/*
+	 * Force a dedicated backing page (not the shared scratch bin) so the
+	 * whole-fd DMA_BUF_IOCTL_SYNC below cannot race with an unrelated
+	 * sibling block's CPU writes on the same page. See
+	 * config2-manifests/06-cache-coherency-design-decision.md.
+	 */
+	rc = gsl_msg_alloc_ext(APM_CMD_GRAPH_OPEN, graph->src_port,
 		GSL_GPR_DST_PORT_APM, sizeof(*open_cmd), 0, graph->proc_id,
-		graph_open_size, false, &gsl_msg);
+		graph_open_size, false, GSL_GET_SPF_SS_MASK(graph->proc_id),
+		GSL_SHMEM_DEDICATED_PAGE, 0, &gsl_msg);
 	if (rc) {
 		GSL_ERR("GSL MSG alloc failed size: %d rc:%d", graph_open_size, rc);
 		goto free_sg_prop_data;
@@ -3229,12 +3264,32 @@ static int32_t gsl_graph_open_sgids_and_connections(struct gsl_graph *graph,
 	open_cmd->mem_map_handle = gsl_msg.shmem.spf_mmap_handle;
 	open_cmd->payload_size = graph_open_size;
 
+	/* In-band messages have no shared-memory handle to synchronize. */
+	rc = gsl_msg.shmem.handle ?
+		gsl_shmem_sync_for_device(&gsl_msg.shmem) : AR_EOK;
+	if (rc) {
+		GSL_ERR("sync_for_device failed %d, opcode 0x%x size %d", rc,
+			APM_CMD_GRAPH_OPEN, graph_open_size);
+		goto free_gsl_msg;
+	}
+
 	GSL_LOG_PKT("send_pkt", graph->src_port, gsl_msg.gpr_packet,
 		sizeof(*gsl_msg.gpr_packet) + sizeof(*open_cmd), gsl_msg.payload,
 		graph_open_size);
 
 	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&gsl_msg.gpr_packet,
 		&graph->graph_signal[GRAPH_CTRL_GRP1_CMD_SIG]);
+	{
+		int32_t sync_rc;
+
+		sync_rc = gsl_msg.shmem.handle ?
+			gsl_shmem_sync_for_cpu(&gsl_msg.shmem) : AR_EOK;
+
+		GSL_DBG("opcode=0x%x gpr_rsp_rc=%d sync_for_cpu_rc=%d size=%d",
+			APM_CMD_GRAPH_OPEN, rc, sync_rc, graph_open_size);
+		if (sync_rc && !rc)
+			rc = sync_rc;
+	}
 	if (rc) {
 		GSL_ERR("Graph open failed:%d", rc);
 		goto free_gsl_msg;

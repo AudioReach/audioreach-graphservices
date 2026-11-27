@@ -23,3 +23,5 @@ int32_t ar_shmem_dsp_map(ar_shmem_info *info);
 int32_t ar_shmem_dsp_unmap(ar_shmem_info *info);
 int32_t ar_shmem_dsp_hyp_assign_phys(ar_shmem_hyp_assign_phys_info *info);
 int32_t ar_shmem_dsp_deinit(void);
+int32_t ar_shmem_dsp_sync_for_device(ar_shmem_info *info);
+int32_t ar_shmem_dsp_sync_for_cpu(ar_shmem_info *info);

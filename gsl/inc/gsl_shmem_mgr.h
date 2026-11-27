@@ -75,6 +75,21 @@ int32_t gsl_shmem_get_mapped_ss_mask(
 
 int32_t gsl_shmem_free(struct gsl_shmem_alloc_data *alloc_data);
 
+/*
+ * gsl_shmem_sync_for_device / gsl_shmem_sync_for_cpu
+ *
+ * Transfer CPU/DSP cache ownership of a transient allocation around a
+ * single command's lifetime. Only safe when the allocation is backed by
+ * its own dma-buf fd (i.e. allocated with GSL_SHMEM_DEDICATED_PAGE):
+ * DMA_BUF_IOCTL_SYNC has no offset/length and transitions ownership of
+ * the whole fd, so calling this on a block from the shared scratch bin
+ * could race with or discard an unrelated, concurrently-live sibling
+ * block's CPU writes on the same page. Callers that did not request
+ * GSL_SHMEM_DEDICATED_PAGE must not use these.
+ */
+int32_t gsl_shmem_sync_for_device(const struct gsl_shmem_alloc_data *alloc_data);
+int32_t gsl_shmem_sync_for_cpu(const struct gsl_shmem_alloc_data *alloc_data);
+
 void gsl_shmem_signal_ssr(uint32_t master_proc_id);
 void gsl_shmem_clear_ssr(uint32_t master_proc_id);
 void gsl_shmem_remap_pre_alloc(uint32_t master_proc_id);
