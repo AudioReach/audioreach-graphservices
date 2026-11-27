@@ -46,7 +46,11 @@ extern "C" {
 /**
 * Used for APSS2 sub system
 */
-#define AR_APSS2                     0xC
+#define AR_APSS2                    0xC
+
+#define AR_AUDIO_DSP1               0xE
+
+#define AR_AUDIO_DSP2               0xF
 
 /**
 * First sub system ID
@@ -55,7 +59,7 @@ extern "C" {
 /**
 * Last sub system ID
 */
-#define AR_SUB_SYS_ID_LAST     AR_APSS2
+#define AR_SUB_SYS_ID_LAST     AR_AUDIO_DSP2
 
 /**
 * Bit masks representing the subsystem IDs. Update when subystem gets

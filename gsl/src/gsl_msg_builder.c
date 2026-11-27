@@ -113,17 +113,18 @@ exit:
 	return rc;
 }
 
-int32_t gsl_msg_builder_init(uint32_t num_master_procs,
-			     uint32_t *master_procs)
+
+int32_t gsl_msg_builder_init(uint32_t num_procs, uint32_t *procs,
+				uint32_t num_master_procs, uint32_t *master_procs)
 {
 	int32_t rc = AR_EOK;
 	uint32_t i = 0;
 
-	for (; i < num_master_procs; i++)
-		__gpr_cmd_is_shared_mem_supported(master_procs[i],
-					&supports_shared_mem[master_procs[i]]);
+	for (; i < num_procs; i++)
+		__gpr_cmd_is_shared_mem_supported(procs[i],
+					&supports_shared_mem[procs[i]]);
 
-	rc = gsl_shmem_init(num_master_procs, master_procs);
+	rc = gsl_shmem_init(num_procs, procs, num_master_procs, master_procs);
 
 	return rc;
 }

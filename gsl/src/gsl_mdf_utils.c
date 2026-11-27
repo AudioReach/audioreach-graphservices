@@ -388,16 +388,24 @@ void gsl_mdf_utils_notify_ss_restarted(uint32_t restarted_ss_mask)
 		 * if master is crashed then mark all ss in the group as restarted
 		 * this is required because we need to remap to all satellites if
 		 * the master crashed. For now we assume ADSP is the master.
+		 *
+		 * NOTE: accumulate with |= — notify_ss_restarted is invoked once per
+		 * DSP DOWN callback, each carrying a single-proc restarted_ss_mask.
+		 * Using = clobbered the full-group flag set by the master-down call
+		 * with the last satellite's bit, so only the last satellite (ADSP2)
+		 * was ever remapped and ADSP1 was silently skipped after SSR, which
+		 * crashed the SPF offload container (NULL deref) on the next offload
+		 * open to the unremapped satellite.
 		 */
 		if (GSL_TEST_SPF_SS_BIT(restarted_ss_mask, grp->master_proc)) {
-			grp->ss_restarted_flags = grp->ss_mask;
+			grp->ss_restarted_flags |= grp->ss_mask;
 		} else {
 			tmp_ss_mask = grp->ss_mask & restarted_ss_mask;
 			/*
 			 * Check if any ss in the current group is restarted
 			 */
 			if (tmp_ss_mask)
-				grp->ss_restarted_flags = tmp_ss_mask;
+				grp->ss_restarted_flags |= tmp_ss_mask;
 		}
 	}
 }

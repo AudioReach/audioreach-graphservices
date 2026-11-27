@@ -13,6 +13,8 @@ AM_CFLAGS += -I$(top_srcdir)/ar_util/api
 AM_CFLAGS += -I$(top_srcdir)/gpr/api
 AM_CFLAGS += -I$(top_srcdir)/acdb/api
 AM_CFLAGS += -I$(top_srcdir)/spf/api/ar_utils -I$(top_srcdir)/spf/api/apm -I$(top_srcdir)/spf/api/modules
+AM_CFLAGS += -DGSL_DEBUG_ENABLE
+AM_CFLAGS += -DGSL_EXT_MEM_CACHE_DISABLE
 
 gsl_sources = ./inc/gsl_common.h \
               ./inc/gsl_graph.h \

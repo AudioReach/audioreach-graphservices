@@ -27,6 +27,8 @@ extern "C" {
 #define GSL_SHMEM_DEDICATED_PAGE 0x2
 #define GSL_SHMEM_MAP_UNCACHED 0x4
 #define GSL_SHMEM_CMA 0x8
+#define GSL_SHMEM_MAP_CACHED 0x10
+#define GSL_SHMEM_PERSISTENT_CAL 0x20
 
 /* used to tell SPF we're doing something with CMA */
 #define GSL_GPR_CMA_FLAG_BIT 0x2
@@ -51,7 +53,7 @@ struct gsl_shmem_alloc_data_per_proc {
  * master_proc id values can vary from AR_SUB_SYS_ID_FIRST - AR_SUB_SYS_ID_LAST
  * proc_ids as defined in ar_osal_sys_id.h
  */
-int32_t gsl_shmem_init(uint32_t num_master_procs, uint32_t *master_procs);
+int32_t gsl_shmem_init(uint32_t num_procs, uint32_t *procs, uint32_t num_master_procs, uint32_t *master_procs);
 
 int32_t gsl_shmem_deinit(void);
 
@@ -63,7 +65,8 @@ int32_t gsl_shmem_alloc_ext(uint32_t size_bytes, uint32_t spf_ss_mask,
 	struct gsl_shmem_alloc_data *alloc_data);
 
 int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
-	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data);
+	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data,
+	uint32_t flags);
 
 int32_t gsl_shmem_unmap_extern_mem(struct gsl_shmem_alloc_data alloc_data);
 

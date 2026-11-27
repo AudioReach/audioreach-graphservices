@@ -61,6 +61,110 @@
 #define GSL_SHMEM_IS_OFFSET_MODE(type) \
 (((ar_shmem_buffer_index_type_t)(type)) == AR_SHMEM_BUFFER_OFFSET)
 
+struct gsl_apm_mem_map_v2 {
+    struct apm_cmd_shared_mem_map_regions_v2_t mmap_header;
+    struct apm_shared_map_region_payload_t mmap_payload;
+};
+
+struct gsl_mem_region_info {
+    struct apm_cmd_shared_mem_region_access_info_t mem_info_header;
+};
+
+
+#define ALIGN_DOWN_4K(x) ((x) & ~0xFFF)
+
+#define CLIENT_ID	1
+#define CLIENT_ID_SHIFT	19
+#define REGION_ID_MASK 0x7FFFF
+#define MAX_MAPPED_REGIONS 32
+
+static uint32_t global_region_counter = 0;
+
+/** Generates a 24-bit unique shared memory ID with 5-bit client ID
+  * and 19-bit region ID.
+  */
+static inline uint32_t generate_unique_shm_id(void)
+{
+	uint32_t region_id = global_region_counter++ & REGION_ID_MASK;
+	return (CLIENT_ID << CLIENT_ID_SHIFT) | region_id;
+}
+
+/** Structure to track mapped regions */
+typedef struct {
+	/** Unique identifier for the current shared memory region being mapped;
+	 *  starting from 0 in hex with mask. 8 MSBs are reserved per DSP design.
+	 */
+	uint32_t unique_shm_id;
+	uint32_t dsp_id; /*dsp id; starting from 0 in decimal*/
+	uint64_t phy_addr; /*beginning of the mem region addr space*/
+	uint32_t size; /*size of the mem region*/
+} shm_region_v2_entry_t;
+
+
+static shm_region_v2_entry_t shm_map_table[MAX_MAPPED_REGIONS];
+static uint32_t shm_map_count = 0;
+
+/**
+ * \brief Records a mapping entry for later unmap.
+ *
+ * \param[in] unique_shm_id: uniquely identify a shmem region.
+ * \param[in] dsp_id: the dsp shmem mapped for.
+ * \param[in] phy_addr: beginning of the mem region addr space.
+ * \param[in] size: size of shmem region.
+ * \param[out] sh_map_table: an added entry in shm_map_table.
+ *
+ * \return GSL_EOK on success, error code otherwise
+ */
+static inline void record_shm_mapping(uint32_t unique_shm_id, uint32_t dsp_id, uint64_t phy_addr, uint32_t size)
+{
+	if (shm_map_count < MAX_MAPPED_REGIONS) {
+		shm_map_table[shm_map_count++] = (shm_region_v2_entry_t){
+		.unique_shm_id = unique_shm_id,
+		.dsp_id = dsp_id,
+		.phy_addr = phy_addr,
+		.size = size
+		};
+	}
+}
+
+/**
+ * \brief Finds unique_shm_id for a given DSP and physical address (for unmap)
+ *
+ * \param[in] dsp_id: dsp id.
+ * \param[in] phy_addr: mapped physical address for the dsp_id.
+ * \param[in] out_shm_id: placeholder for the target shared mem id to be found.
+ * \param[out] out_shm_id: shared mem id that matches given dsp_id and physical address.
+ *
+ * \return AR_EOK on success, AR_EFAILED otherwise.
+ */
+static inline int find_unique_shm_id_for_unmap(uint32_t dsp_id, uint64_t phy_addr, uint32_t *out_shm_id)
+{
+	for (uint32_t i = 0; i < shm_map_count; ++i) {
+		if (shm_map_table[i].dsp_id == dsp_id && shm_map_table[i].phy_addr == phy_addr) {
+			*out_shm_id = shm_map_table[i].unique_shm_id;
+			return AR_EOK;
+		}
+	}
+	return AR_EFAILED;
+}
+/**
+ * \brief Removes a mapping entry from the tracking table based on unique_shm_id and dsp_id
+ *
+ * \param[in] unique_shm_id: unique shared mem id.
+ * \param[in] dsp_id: dsp id.
+ * \param[out] shm_map_count: updated shm_map_table upon matched input params.
+ */
+static inline void remove_shm_mapping(uint32_t unique_shm_id, uint32_t dsp_id)
+{
+    for (uint32_t i = 0; i < shm_map_count; ++i) {
+        if (shm_map_table[i].unique_shm_id == unique_shm_id && shm_map_table[i].dsp_id == dsp_id) {
+            shm_map_table[i] = shm_map_table[shm_map_count - 1];
+            --shm_map_count;
+            return;
+        }
+    }
+}
+
 struct gsl_apm_mem_map {
 	struct apm_cmd_shared_mem_map_regions_t mmap_header;
 	struct apm_shared_map_region_payload_t mmap_payload;
@@ -306,21 +410,25 @@ static int32_t gsl_shmem_handle_rsp(gpr_packet_t *rsp, uint32_t master_proc_id,
 		basic_rsp = GPR_PKT_GET_PAYLOAD(struct spf_cmd_basic_rsp,
 			rsp);
 		switch (basic_rsp->opcode) {
+		case APM_CMD_SHARED_MEM_MAP_REGIONS_V2:
+		case APM_CMD_SHARED_MEM_UNMAP_REGIONS_V2:
+		case APM_CMD_SHARED_MEM_REGION_ACCESS_INFO:
 		case APM_CMD_SHARED_MEM_MAP_REGIONS:
 		case APM_CMD_SHARED_SATELLITE_MEM_MAP_REGIONS:
 		case APM_CMD_RSP_SHARED_SATELLITE_MEM_MAP_REGIONS:
 		case APM_CMD_SHARED_MEM_UNMAP_REGIONS:
 		case APM_CMD_SHARED_SATELLITE_MEM_UNMAP_REGIONS:
+
 			if (basic_rsp->status) {
 				GSL_ERR("received failure %x from spf", basic_rsp->status);
-				rc = AR_EFAILED;
+				rc = basic_rsp->status;
 			}
 			break;
 
 		default:
 			GSL_ERR("unsupported opcode %d encountered in GPR SHMEM response",
 				basic_rsp->opcode);
-			rc = AR_EFAILED;
+			rc = AR_EUNSUPPORTED;
 			break;
 		};
 		break;
@@ -330,9 +438,9 @@ end:
 	return rc;
 }
 
-/* Memory map 1-region of given size */
-static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
-	uint32_t flags, uint32_t spf_ss_map_mask)
+static int32_t gsl_shmem_map_region_v1(struct gsl_shmem_page *page,
+    uint32_t flags, uint32_t spf_ss_map_mask, uint32_t master_proc_id,
+    bool_t dynamic_pd, uint8_t cma_client_data)
 {
 	struct gsl_apm_mem_map *mmap;
 	struct gsl_apm_mem_map_satellite *mmap_sat;
@@ -341,39 +449,6 @@ static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
 	uint32_t tmp_spf_ss_mask, spf_ss_mask_sans_adsp;
 	uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
 	gpr_packet_t *send_pkt = NULL, *rsp_pkt = NULL;
-	uint8_t cma_client_data = 0;
-	uint32_t master_proc_id = page->master_proc;
-	bool_t dynamic_pd = FALSE;
-
-	/* if this is a CMA page we need to set client data on all gpr packets */
-	if ((page->shmem_info.flags & (AR_SHMEM_BIT_MASK_HW_ACCELERATOR_FLAG
-		<< AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) != 0)
-			cma_client_data = GSL_GPR_CMA_FLAG_BIT;
-
-	/*
-	 * if the spf master or any of the satellites is down skip mapping and
-	 * retrun ENOTREADY
-	 */
-	if ((gsl_spf_ss_state_get(master_proc_id) & spf_ss_map_mask) !=
-		spf_ss_map_mask)
-			return AR_ENOTREADY;
-
-	// check if there are some peneding memmap packets need to be unmmaped.
-	gsl_shmem_check_and_unmap_cache_pending_packets(master_proc_id);
-
-	spf_ss_mask_sans_adsp = spf_ss_map_mask &
-		~GSL_GET_SPF_SS_MASK(master_proc_id);
-	tmp_spf_ss_mask = spf_ss_mask_sans_adsp;
-	while (tmp_spf_ss_mask) {
-		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
-			if (gsl_mdf_utils_is_dynamic_pd(sys_id)) {
-				dynamic_pd = TRUE;
-				break;
-			}
-		}
-		++sys_id;
-		tmp_spf_ss_mask >>= 1;
-	}
 
 	/* first map to master (assumed to be adsp currently) */
 	if (GSL_TEST_SPF_SS_BIT(spf_ss_map_mask, master_proc_id)) {
@@ -411,9 +486,12 @@ static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
 		if (flags & GSL_SHMEM_LOANED)
 			mmap->mmap_header.property_flag |=
 			APM_MEMORY_MAP_BIT_MASK_IS_MEM_LOANED;
-		if (flags & GSL_SHMEM_MAP_UNCACHED)
+		if (flags & GSL_SHMEM_MAP_UNCACHED) {
 			mmap->mmap_header.property_flag |=
 				APM_MEMORY_MAP_BIT_MASK_IS_UNCACHED;
+			GSL_DBG("allocate_page: UNCACHED set, property_flag=0x%x",
+				mmap->mmap_header.property_flag);
+		}
 		if (dynamic_pd)
 			mmap->mmap_header.property_flag |=
 				APM_MEMORY_MAP_LOANED_MEMORY_HEAP_MNGR_TYPE_SAFE_HEAP <<
@@ -457,6 +535,8 @@ static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
 	}
 
 	/* map the shared memory to satellite subsystems if any */
+	spf_ss_mask_sans_adsp = spf_ss_map_mask &
+		~GSL_GET_SPF_SS_MASK(master_proc_id);
 	sys_id = AR_SUB_SYS_ID_FIRST;
 	tmp_spf_ss_mask = spf_ss_mask_sans_adsp;
 	while (tmp_spf_ss_mask) {
@@ -530,14 +610,291 @@ static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
 	}
 
 exit:
+	return rc;
+}
+
+static int32_t gsl_shmem_map_region_v2(struct gsl_shmem_page *page,
+	uint32_t flags, uint32_t spf_ss_map_mask, uint32_t master_proc_id,
+	bool_t dynamic_pd, uint8_t cma_client_data)
+{
+	int32_t rc = AR_EOK;
+	gpr_cmd_alloc_ext_t gpr_args;
+	uint32_t tmp_spf_ss_mask, spf_ss_mask_sans_adsp;
+	uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
+	gpr_packet_t *send_pkt = NULL, *rsp_pkt = NULL;
+	struct gsl_apm_mem_map_v2 *mmap_v2;
+	struct gsl_mem_region_info *access_info;
+	uint32_t num_dsp = 0;
+	uint32_t total_size = 0;
+	uint32_t region_size = 0;
+	uint32_t region_index = 0;
+	uint32_t shm_id = 0;
+	bool send_access_info_cmd = false;
+	uint32_t dsp_list[AR_SUB_SYS_ID_LAST + 1] = {0};
+
+	tmp_spf_ss_mask = spf_ss_map_mask;
+	spf_ss_mask_sans_adsp = spf_ss_map_mask;
+
+	while (tmp_spf_ss_mask){
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
+			dsp_list[num_dsp++] = sys_id;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+
+	if (flags & GSL_SHMEM_LOANED) {
+		send_access_info_cmd = true;
+	} else if (flags & GSL_SHMEM_PERSISTENT_CAL) {
+		send_access_info_cmd = true;
+	}
+
+	sys_id = AR_SUB_SYS_ID_FIRST;
+	tmp_spf_ss_mask = spf_ss_map_mask;
+	spf_ss_mask_sans_adsp = spf_ss_map_mask;
+	total_size  = page->size_bytes;
+	region_size = ALIGN_DOWN_4K(total_size / num_dsp);
+	uint64_t phy_addr = ((uint64_t)page->shmem_info.ipa_msw << 32) | (page->shmem_info.ipa_lsw + (region_index * region_size) );
+
+	while (tmp_spf_ss_mask) {
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
+			shm_id = generate_unique_shm_id();
+			for (uint32_t i = 0; i < num_dsp; ++i) {
+				uint32_t current_dsp = dsp_list[i];
+				bool is_loaned_candidate = (sys_id == current_dsp);
+
+				rc = gsl_allocate_gpr_packet(
+					APM_CMD_SHARED_MEM_MAP_REGIONS_V2, GSL_SHMEM_SRC_PORT,
+					APM_MODULE_INSTANCE_ID, sizeof(*mmap_v2), 0, current_dsp,
+					&send_pkt);
+
+				if (rc) {
+					GSL_ERR("Failed to allocate GPR packet:%d", rc);
+					goto exit;
+				}
+
+				mmap_v2 = GPR_PKT_GET_PAYLOAD(struct gsl_apm_mem_map_v2,
+					send_pkt);
+				page->spf_handle = shm_id;
+				mmap_v2->mmap_header.unique_shm_id = shm_id;
+				mmap_v2->mmap_header.proc_domain_id = current_dsp;
+				mmap_v2->mmap_header.mem_pool_id = APM_MEMORY_MAP_SHMEM8_4K_POOL;
+				mmap_v2->mmap_header.num_regions = 1;
+				// Need to check..start
+				mmap_v2->mmap_header.property_flag =
+					page->shmem_info.index_type <<
+					APM_MEMORY_MAP_SHIFT_IS_OFFSET_MODE;
+				mmap_v2->mmap_header.property_flag |=
+					page->shmem_info.mem_type << APM_MEMORY_MAP_SHIFT_IS_VIRTUAL;
+				// bit 6-8 specifies the memory address type
+				// Need to check..end
+
+				/*If the current DSP is the owner of the memory region,
+				set Bit 3 to 1 to indicate the memory is "loaned".
+				Otherwise, it defaults to "client-owned".*/
+				if ((flags & GSL_SHMEM_LOANED) && is_loaned_candidate)  {
+					mmap_v2->mmap_header.property_flag |=
+					APM_MEMORY_MAP_BIT_MASK_IS_MEM_LOANED;
+				}
+
+				if (flags & GSL_SHMEM_MAP_UNCACHED) {
+					mmap_v2->mmap_header.property_flag |=
+						APM_MEMORY_MAP_BIT_MASK_IS_UNCACHED;
+					GSL_DBG("map_region_v2: UNCACHED set property_flag=0x%x",
+						mmap_v2->mmap_header.property_flag);
+				}
+
+				mmap_v2->mmap_payload.shm_addr_lsw = page->shmem_info.ipa_lsw + (region_index * region_size);
+				mmap_v2->mmap_payload.shm_addr_msw = page->shmem_info.ipa_msw;
+				mmap_v2->mmap_payload.mem_size_bytes = region_size;
+
+			    phy_addr = ((uint64_t)mmap_v2->mmap_payload.shm_addr_msw << 32) | (mmap_v2->mmap_payload.shm_addr_lsw );
+				record_shm_mapping(mmap_v2->mmap_header.unique_shm_id, current_dsp, phy_addr, region_size);
+
+				send_pkt->client_data |= cma_client_data;
+				GSL_LOG_PKT("send_pkt", GSL_SHMEM_SRC_PORT, send_pkt,
+					sizeof(*send_pkt) + sizeof(*mmap_v2), NULL, 0);
+
+				if (!ctxt[current_dsp]) {
+					GSL_ERR("ctxt[%d] is NULL — aborting memmap", current_dsp);
+					goto exit;
+				}else{
+					ctxt[current_dsp]->page_being_mapped = page;
+					ctxt[current_dsp]->memmap_count++;
+				}
+
+				ctxt[current_dsp]->page_being_mapped = page;
+				ctxt[current_dsp]->memmap_count++;
+
+				rc = gsl_send_spf_cmd(&send_pkt, &ctxt[current_dsp]->sig,
+						&rsp_pkt);
+				if (rc) {
+					GSL_ERR("Mem map satellite failed:%d", rc);
+					if (rsp_pkt)
+						__gpr_cmd_free(rsp_pkt);
+					goto exit;
+				}
+				if (!rsp_pkt) {
+					GSL_ERR("Received null response packet");
+					rc = AR_EUNEXPECTED;
+					goto exit;
+				}
+				rc = gsl_shmem_handle_rsp(rsp_pkt, current_dsp,
+					GPR_IBASIC_RSP_RESULT);
+				if (rc) {
+					GSL_ERR("Mem map satellite failed:%d", rc);
+					if (rsp_pkt)
+						__gpr_cmd_free(rsp_pkt);
+					goto exit;
+				}
+				if (!rsp_pkt) {
+					GSL_ERR("Received null response packet");
+					rc = AR_EUNEXPECTED;
+					goto exit;
+				}
+				rc = gsl_shmem_handle_rsp(rsp_pkt, current_dsp,
+					GPR_IBASIC_RSP_RESULT);
+				if (rc) {
+					GSL_ERR("handle shmem response failed %d", rc);
+					goto exit;
+				}
+
+			}
+			if (send_access_info_cmd) {
+			/* Populate peer_proc_domain_list[] with all DSPs except the owner (sys_id) */
+				uint32_t peer_dsp_list[num_dsp];
+				uint32_t num_peers = 0;
+				uint32_t payload_size = 0;
+				uint32_t *peer_list;
+
+				for (uint32_t i = 0; i < num_dsp; ++i) {
+					if(flags & GSL_SHMEM_LOANED) {
+						if (dsp_list[i] != sys_id) {
+							peer_dsp_list[num_peers++] = dsp_list[i];
+						}
+					}else {
+						peer_dsp_list[num_peers++] = dsp_list[i];
+					}
+				}
+
+				payload_size = sizeof(*access_info) + num_peers * sizeof(uint32_t);
+				rc = gsl_allocate_gpr_packet(
+					APM_CMD_SHARED_MEM_REGION_ACCESS_INFO, GSL_SHMEM_SRC_PORT,
+					APM_MODULE_INSTANCE_ID, payload_size, 0, master_proc_id,
+					&send_pkt);
+
+				if (rc) {
+					GSL_ERR("Failed to allocate GPR packet:%d", rc);
+					goto exit;
+				}
+
+				access_info = GPR_PKT_GET_PAYLOAD(struct gsl_mem_region_info, send_pkt);
+				access_info->mem_info_header.unique_shm_id = shm_id;
+				access_info->mem_info_header.proc_domain_id = sys_id;
+				access_info->mem_info_header.num_peer_proc_domain_ids = num_peers;
+				/* Assign peer DSP domain IDs to the flexible array */
+				peer_list = (uint32_t *)(access_info + 1);
+				for (uint32_t i = 0; i < num_peers; ++i) {
+					peer_list[i] = peer_dsp_list[i];
+				}
+
+				send_pkt->client_data |= cma_client_data;
+				GSL_LOG_PKT("send_pkt", GSL_SHMEM_SRC_PORT, send_pkt,
+					sizeof(*send_pkt) + payload_size, NULL, 0);
+
+				rc = gsl_send_spf_cmd(&send_pkt, &ctxt[master_proc_id]->sig,
+					&rsp_pkt);
+				if (rc) {
+					GSL_ERR("Mem map satellite failed:%d", rc);
+					if (rsp_pkt)
+						__gpr_cmd_free(rsp_pkt);
+					goto exit;
+				}
+				if (!rsp_pkt) {
+					GSL_ERR("Received null response packet");
+					rc = AR_EUNEXPECTED;
+					goto exit;
+				}
+				rc = gsl_shmem_handle_rsp(rsp_pkt, sys_id,
+						GPR_IBASIC_RSP_RESULT);
+				if (rc) {
+					GSL_ERR("handle shmem response failed %d", rc);
+					goto exit;
+				}
+			}
+			++region_index;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+
+exit:
+	return rc;
+}
+
+/* Memory map 1-region of given size */
+static int32_t gsl_shmem_map_page_to_spf(struct gsl_shmem_page *page,
+	uint32_t flags, uint32_t spf_ss_map_mask)
+{
+    int32_t rc = AR_EOK;
+    uint8_t cma_client_data = 0;
+    uint32_t master_proc_id = page->master_proc;
+    bool_t dynamic_pd = FALSE;
+    uint32_t spf_ss_mask_sans_adsp;
+    uint32_t tmp_spf_ss_mask;
+    uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
+
+	/* if this is a CMA page we need to set client data on all gpr packets */
+	if ((page->shmem_info.flags & (AR_SHMEM_BIT_MASK_HW_ACCELERATOR_FLAG
+		<< AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) != 0)
+			cma_client_data = GSL_GPR_CMA_FLAG_BIT;
+
+	/*
+	 * if the spf master or any of the satellites is down skip mapping and
+	 * retrun ENOTREADY
+	 */
+	if ((gsl_spf_ss_state_get(master_proc_id) & spf_ss_map_mask) !=
+		spf_ss_map_mask)
+			return AR_ENOTREADY;
+
+	// check if there are some peneding memmap packets need to be unmmaped.
+	gsl_shmem_check_and_unmap_cache_pending_packets(master_proc_id);
+
+	spf_ss_mask_sans_adsp = spf_ss_map_mask &
+		~GSL_GET_SPF_SS_MASK(master_proc_id);
+	tmp_spf_ss_mask = spf_ss_mask_sans_adsp;
+	while (tmp_spf_ss_mask) {
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
+			if (gsl_mdf_utils_is_dynamic_pd(sys_id)) {
+				dynamic_pd = TRUE;
+				break;
+			}
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+
+
+	rc = gsl_shmem_map_region_v2(page, flags, spf_ss_map_mask, master_proc_id,
+			dynamic_pd, cma_client_data);
+    if (rc != AR_EUNSUPPORTED) {
+		GSL_INFO("V2 shmem mapping attempted, rc = %d", rc);
+		goto exit;
+	}
+	GSL_INFO("V2 unsupported, falling back to V1 map");
+	rc = gsl_shmem_map_region_v1(page, flags, spf_ss_map_mask,
+			master_proc_id, dynamic_pd, cma_client_data);
+	GSL_INFO("V1 shmem mapping attempted, rc = %d", rc);
+
+exit:
 	if (rc){
 		ctxt[master_proc_id]->error_memmap_shmem_info_flags = page->shmem_info.flags;
 	}
 	return rc;
 }
 
-static int32_t gsl_shmem_unmap_page_from_spf(struct gsl_shmem_page *page,
-	uint32_t spf_ss_unmap_mask)
+static int32_t gsl_shmem_unmap_region_v1(struct gsl_shmem_page *page,
+	uint32_t spf_ss_unmap_mask, uint32_t master_proc_id, uint8_t cma_client_data)
 {
 	struct apm_cmd_shared_mem_unmap_regions_t *payload;
 	struct apm_cmd_shared_satellite_mem_unmap_regions_t *payload_sat;
@@ -545,23 +902,12 @@ static int32_t gsl_shmem_unmap_page_from_spf(struct gsl_shmem_page *page,
 	uint32_t tmp_spf_ss_mask, spf_ss_mask_sans_adsp;
 	uint32_t sys_id = AR_MODEM_DSP;
 	gpr_packet_t *send_pkt = NULL, *rsp_pkt = NULL;
-	uint8_t cma_client_data = 0;
-	uint32_t master_proc_id = page->master_proc;
-
-	/* if the spf master or any satellites are down silently skip unmap */
-	if ((gsl_spf_ss_state_get(master_proc_id) & spf_ss_unmap_mask) !=
-		page->spf_ss_mask)
-		return AR_EOK;
-
-	/* if this is a CMA page we need to set client data on all gpr packets */
-	if ((page->shmem_info.flags & (AR_SHMEM_BIT_MASK_HW_ACCELERATOR_FLAG
-		<< AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) != 0)
-		cma_client_data = GSL_GPR_CMA_FLAG_BIT;
 
 	/*
 	 * firstly unmap from satellites, adsp does not require this step hence we
 	 * clear its bit to skip.
 	 */
+	sys_id = AR_MODEM_DSP;
 	spf_ss_mask_sans_adsp = spf_ss_unmap_mask &
 		~GSL_GET_SPF_SS_MASK(master_proc_id);
 	tmp_spf_ss_mask = spf_ss_mask_sans_adsp;
@@ -627,6 +973,143 @@ static int32_t gsl_shmem_unmap_page_from_spf(struct gsl_shmem_page *page,
 		rc = gsl_shmem_handle_rsp(rsp_pkt, master_proc_id,
 					  GPR_IBASIC_RSP_RESULT);
 	}
+exit:
+	return rc;
+}
+
+static int32_t gsl_shmem_unmap_region_v2(struct gsl_shmem_page *page,
+	uint32_t spf_ss_unmap_mask, uint32_t master_proc_id, uint8_t cma_client_data)
+{
+    int32_t rc = AR_EOK;
+	struct apm_cmd_shared_satellite_mem_unmap_regions_t *payload_sat;
+	uint32_t tmp_spf_ss_mask, spf_ss_mask_sans_adsp;
+	uint32_t sys_id = AR_MODEM_DSP;
+	gpr_packet_t *send_pkt = NULL, *rsp_pkt = NULL;
+	struct apm_cmd_shared_mem_unmap_regions_v2_t *payload_v2;
+	uint32_t num_dsp = 0;
+	uint32_t total_size = 0;
+	uint32_t region_size = 0;
+	uint32_t region_index = 0;
+	uint32_t shm_id = 0;
+	uint64_t phy_addr = 0;
+	uint32_t dsp_list[AR_SUB_SYS_ID_LAST + 1] = {0};
+
+	tmp_spf_ss_mask = spf_ss_unmap_mask;
+	spf_ss_mask_sans_adsp = spf_ss_unmap_mask;
+	while (tmp_spf_ss_mask){
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
+			dsp_list[num_dsp++] = sys_id;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+
+	/* if the spf master or any satellites are down silently skip unmap */
+	if ((gsl_spf_ss_state_get(master_proc_id) & spf_ss_unmap_mask) !=
+		page->spf_ss_mask)
+		return AR_EOK;
+
+	/* if this is a CMA page we need to set client data on all gpr packets */
+	if ((page->shmem_info.flags & (AR_SHMEM_BIT_MASK_HW_ACCELERATOR_FLAG
+		<< AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) != 0)
+		cma_client_data = GSL_GPR_CMA_FLAG_BIT;
+
+	sys_id = AR_SUB_SYS_ID_FIRST;
+	tmp_spf_ss_mask = spf_ss_unmap_mask;
+	spf_ss_mask_sans_adsp = spf_ss_unmap_mask;
+	total_size  = page->size_bytes;
+	region_size = ALIGN_DOWN_4K(total_size / num_dsp);
+	while (tmp_spf_ss_mask) {
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_mask_sans_adsp, sys_id)) {
+			for (uint32_t i = 0; i < num_dsp; ++i) {
+				uint32_t current_dsp = dsp_list[i];
+				uint64_t phy_addr = ((uint64_t)page->shmem_info.ipa_msw  << 32) | (page->shmem_info.ipa_lsw + (region_index * region_size)); // check
+				rc = find_unique_shm_id_for_unmap(current_dsp, phy_addr, &shm_id);
+				if(rc){
+					GSL_ERR("Failed to find unique shm id %d", rc);
+					goto exit;
+				}
+				remove_shm_mapping(shm_id, current_dsp);
+				rc = gsl_allocate_gpr_packet(
+				APM_CMD_SHARED_MEM_UNMAP_REGIONS_V2, GSL_SHMEM_SRC_PORT,
+				APM_MODULE_INSTANCE_ID, sizeof(*payload_sat), 0, current_dsp,
+				&send_pkt);
+				if (rc) {
+					GSL_ERR("Failed to allocate GPR packet %d", rc);
+				goto exit;
+				}
+				payload_v2 = GPR_PKT_GET_PAYLOAD(
+				struct apm_cmd_shared_mem_unmap_regions_v2_t, send_pkt);
+				//page->spf_handle = shm_id; // check??
+				payload_v2->unique_shm_id = shm_id;
+				payload_v2->proc_domain_id = current_dsp;
+
+				send_pkt->client_data |= cma_client_data;
+
+				GSL_LOG_PKT("send_pkt", GSL_SHMEM_SRC_PORT, send_pkt,
+				sizeof(*send_pkt) + sizeof(*payload_sat), NULL, 0);
+
+				if (!ctxt[current_dsp]) {
+					GSL_ERR("ctxt[%d] is NULL — aborting unmemmap", current_dsp);
+					goto exit;
+				}else{
+					ctxt[current_dsp]->page_being_mapped = page;
+					ctxt[current_dsp]->memmap_count++;
+				}
+				rc = gsl_send_spf_cmd(&send_pkt, &ctxt[current_dsp]->sig,
+					      &rsp_pkt);
+				if (rc || !rsp_pkt) {
+					if (rsp_pkt)
+						GSL_ERR("check unmap fail rc: %d rsp_pkt:%d", rc,rsp_pkt);
+						__gpr_cmd_free(rsp_pkt);
+					goto exit;
+				}
+				rc = gsl_shmem_handle_rsp(rsp_pkt, current_dsp,
+						  GPR_IBASIC_RSP_RESULT);
+				if (rc){
+					GSL_ERR("check unmap fail rc: %d", rc);
+					goto exit;
+				}
+
+				}
+			region_index++;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+
+exit:
+	return rc;
+}
+
+static int32_t gsl_shmem_unmap_page_from_spf(struct gsl_shmem_page *page,
+	uint32_t spf_ss_unmap_mask)
+{
+	int32_t rc = AR_EOK;
+    uint8_t cma_client_data = 0;
+    uint32_t master_proc_id = page->master_proc;
+
+	/* if the spf master or any satellites are down silently skip unmap */
+	if ((gsl_spf_ss_state_get(master_proc_id) & spf_ss_unmap_mask) !=
+		page->spf_ss_mask)
+		return AR_EOK;
+
+	/* if this is a CMA page we need to set client data on all gpr packets */
+	if ((page->shmem_info.flags & (AR_SHMEM_BIT_MASK_HW_ACCELERATOR_FLAG
+		<< AR_SHMEM_SHIFT_HW_ACCELERATOR_FLAG)) != 0)
+		cma_client_data = GSL_GPR_CMA_FLAG_BIT;
+
+	rc = gsl_shmem_unmap_region_v2(page, spf_ss_unmap_mask,
+			master_proc_id, cma_client_data);
+    if (rc != AR_EUNSUPPORTED) {
+		GSL_INFO("V2 shmem unmapping attempted, rc = %d", rc);
+		goto exit;
+	}
+	GSL_INFO("V2 unsupported, falling back to V1 unmap");
+	rc = gsl_shmem_unmap_region_v1(page, spf_ss_unmap_mask,
+			master_proc_id, cma_client_data);
+	GSL_INFO("V1 shmem unmapping attempted, rc = %d", rc);
+
 exit:
 	return rc;
 }
@@ -744,6 +1227,7 @@ static int32_t allocate_page(uint32_t page_size, uint32_t bin_idx,
 	page->bin_idx = bin_idx;
 	page->size_bytes = page_size;
 	page->spf_ss_mask = spf_ss_mask;
+
 	rc = gsl_shmem_map_page_to_spf(page, flags, page->spf_ss_mask);
 	if (rc) {
 		GSL_ERR("failed to map page with spf error %d", rc);
@@ -1298,11 +1782,15 @@ int32_t gsl_shmem_unmap_allocation(struct gsl_shmem_alloc_data *alloc_data,
 	return rc;
 }
 int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
-	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data)
+	uint32_t master_proc_id, struct gsl_shmem_alloc_data *alloc_data,
+	uint32_t flags)
 {
 	int32_t rc = AR_EOK;
 	uint32_t size_page_aligned = 0;
 	struct gsl_shmem_page *page = NULL;
+
+	GSL_DBG("gsl_shmem_map_extern_mem: hdl=0x%llx size=%u flags=0x%x",
+		ext_mem_hdl, size_bytes, flags);
 
 	if (!ctxt[master_proc_id]) {
 		rc = AR_EUNSUPPORTED;
@@ -1316,7 +1804,7 @@ int32_t gsl_shmem_map_extern_mem(uint64_t ext_mem_hdl, uint32_t size_bytes,
 
 	// won't actually allocate when we send an ext_mem_handle, it will only map
 	rc = allocate_page(size_page_aligned, GSL_SHMEM_MGR_BIN_IDX_DEDICATED,
-		GSL_GET_SPF_SS_MASK(master_proc_id), 0, 0, ext_mem_hdl, master_proc_id,
+		GSL_GET_SPF_SS_MASK(master_proc_id), flags, 0, ext_mem_hdl, master_proc_id,
 		&page);
 	if (rc) {
 		GSL_ERR("failed to allocate page %d", rc);
@@ -1748,13 +2236,16 @@ int32_t gsl_shmem_hyp_assign(gsl_shmem_handle_t alloc_handle,
 	return rc;
 }
 
-int32_t gsl_shmem_init(uint32_t num_master_procs, uint32_t *master_procs)
+int32_t gsl_shmem_init(uint32_t num_procs, uint32_t *procs, uint32_t num_master_procs, uint32_t *master_procs)
 {
 	int32_t rc = AR_EOK;
 	uint32_t i = 0, j = 0;
 	struct gsl_shmem_page *page = NULL;
 	bool_t is_shmem_supported = FALSE;
 	uint32_t bin_idx = 0;
+
+	bool is_master = false;
+
 
 	/* register with GPR */
 	rc = __gpr_cmd_register(GSL_SHMEM_SRC_PORT,
@@ -1768,52 +2259,48 @@ int32_t gsl_shmem_init(uint32_t num_master_procs, uint32_t *master_procs)
 	if (rc)
 		goto deregister;
 
-	rc = ar_shmem_init_v2(num_master_procs, master_procs);
-	if (rc)
-		goto deregister;
-
-	for (; i < num_master_procs; i++) {
-		__gpr_cmd_is_shared_mem_supported(master_procs[i],
+	for (; i < num_procs; i++) {
+		__gpr_cmd_is_shared_mem_supported(procs[i],
 						  &is_shmem_supported);
 		if (!is_shmem_supported)
 			continue;
 
-		ctxt[master_procs[i]] =
+		ctxt[procs[i]] =
 				gsl_mem_zalloc(sizeof(struct gsl_shmem_mgr_ctxt));
 
-		if (!ctxt[master_procs[i]]) {
+		if (!ctxt[procs[i]]) {
 			GSL_ERR("Unable to allocate memory");
 			rc = AR_ENOMEMORY;
 			goto free_ctxt;
 		}
 
 		for (bin_idx = 0; bin_idx < GSL_SHMEM_MGR_NUM_BINS; ++bin_idx) {
-			rc = ar_list_init(&(ctxt[master_procs[i]]->bins[bin_idx].page_list),
+			rc = ar_list_init(&(ctxt[procs[i]]->bins[bin_idx].page_list),
 					  NULL, NULL);
 			if (rc) {
 				GSL_ERR("ar init list failed %d", rc);
 				goto free_ctxt;
 			}
-			ctxt[master_procs[i]]->bins[bin_idx].num_pages = 0;
+			ctxt[procs[i]]->bins[bin_idx].num_pages = 0;
 		}
 	}
 
-	for (i = 0; i < num_master_procs; i++) {
-		if (!ctxt[master_procs[i]])
+	for (i = 0; i < num_procs; i++) {
+		if (!ctxt[procs[i]])
 			continue;
 
-		rc = ar_osal_mutex_create(&ctxt[master_procs[i]]->mutex);
+		rc = ar_osal_mutex_create(&ctxt[procs[i]]->mutex);
 		if (rc) {
 			GSL_ERR("ar mutex create failed %d", rc);
 			goto cleanup;
 		}
-		rc = ar_osal_mutex_create(&ctxt[master_procs[i]]->sig_lock);
+		rc = ar_osal_mutex_create(&ctxt[procs[i]]->sig_lock);
 		if (rc) {
 			GSL_ERR("ar mutex create failed %d", rc);
 			goto cleanup_mutex;
 		}
-		rc = gsl_signal_create(&ctxt[master_procs[i]]->sig,
-				       &ctxt[master_procs[i]]->sig_lock);
+		rc = gsl_signal_create(&ctxt[procs[i]]->sig,
+				       &ctxt[procs[i]]->sig_lock);
 		if (rc) {
 			GSL_ERR("ar signal create failed %d", rc);
 			goto cleanup_sig_lock;
@@ -1831,33 +2318,45 @@ int32_t gsl_shmem_init(uint32_t num_master_procs, uint32_t *master_procs)
 		 * allocate a page and keep it mapped till de-init, this is to somewhat
 		 * reduce the amount of mapping/unmapping that takes place
 		 */
-		allocate_page(GSL_SHMEM_PRE_ALLOC_SIZE,
-			GSL_SHMEM_MGR_BIN_IDX_PRE_ALLOC_SCRATCH,
-			GSL_GET_SPF_SS_MASK(master_procs[i]), 0, 0,
-			GSL_EXT_MEM_HDL_NOT_ALLOCD,
-			master_procs[i], &page);
+		is_master = false;
+
+	for (uint32_t m = 0; m < num_master_procs; ++m) {
+		if (master_procs[m] == procs[i]) {
+				is_master = true;
+				break;
+			}
+		}
+
+		if (is_master) {
+			allocate_page(GSL_SHMEM_PRE_ALLOC_SIZE,
+				GSL_SHMEM_MGR_BIN_IDX_PRE_ALLOC_SCRATCH,
+				GSL_GET_SPF_SS_MASK(procs[i]), 0, 0,
+				GSL_EXT_MEM_HDL_NOT_ALLOCD,
+				procs[i], &page);
+			}
+
 	}
 
 	goto exit;
 
 cleanup_sig_lock:
-	if (ctxt[master_procs[i]])
-		ar_osal_mutex_destroy(ctxt[master_procs[i]]->sig_lock);
+	if (ctxt[procs[i]])
+		ar_osal_mutex_destroy(ctxt[procs[i]]->sig_lock);
 cleanup_mutex:
-	if (ctxt[master_procs[i]])
-		ar_osal_mutex_destroy(ctxt[master_procs[i]]->mutex);
+	if (ctxt[procs[i]])
+		ar_osal_mutex_destroy(ctxt[procs[i]]->mutex);
 cleanup:
 	for (j = 0; j < i; j++) {
-		if (ctxt[master_procs[j]]) {
-			ar_osal_mutex_destroy(ctxt[master_procs[j]]->sig_lock);
-			ar_osal_mutex_destroy(ctxt[master_procs[j]]->mutex);
+		if (ctxt[procs[j]]) {
+			ar_osal_mutex_destroy(ctxt[procs[j]]->sig_lock);
+			ar_osal_mutex_destroy(ctxt[procs[j]]->mutex);
 		}
 	}
 free_ctxt:
-	for (j = 0; j < num_master_procs; j++) {
-		if (ctxt[master_procs[j]]) {
-			gsl_mem_free(ctxt[master_procs[j]]);
-			ctxt[master_procs[j]] = NULL;
+	for (j = 0; j < num_procs; j++) {
+		if (ctxt[procs[j]]) {
+			gsl_mem_free(ctxt[procs[j]]);
+			ctxt[procs[j]] = NULL;
 		}
 	}
 deregister:

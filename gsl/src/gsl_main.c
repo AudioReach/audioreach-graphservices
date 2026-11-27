@@ -10,6 +10,7 @@
 #include "gsl_intf.h"
 #include "acdb.h"
 #include "ar_osal_error.h"
+#include "ar_osal_boot.h"
 #include "ar_osal_log.h"
 #include "ar_osal_shmem.h"
 #include "ar_util_list.h"
@@ -504,6 +505,7 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 	struct gsl_graph *graph;
 	bool_t master_proc_ssr = gsl_mdf_utils_is_master_proc(spf_ss_mask);
 	uint32_t master_proc = gsl_mdf_utils_get_master_proc_id(spf_ss_mask);
+	bool_t fire_dn, fire_up;
 
 	/*
 	 * Invalid subsystem mask.
@@ -587,9 +589,11 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 		ar_err_det_reset_ctxt(master_proc);
 
 		/* issue callback to client */
-		if (gsl_ctxt.global_cb)
-			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_DN, &client_pld,
-			sizeof(client_pld), gsl_ctxt.global_cb_client_data);
+		fire_dn = gsl_spf_ss_state_fire_dn_event(master_proc, spf_ss_mask);
+		if (fire_dn && gsl_ctxt.global_cb)
+			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_DN,
+				&client_pld, sizeof(client_pld),
+				gsl_ctxt.global_cb_client_data);
 		/* free the handle_list memory  */
 		if (client_pld.handle_list)
 			gsl_mem_free(client_pld.handle_list);
@@ -601,9 +605,10 @@ static void gsl_main_ssr_callback(enum spf_ss_state_t state,
 		}
 
 		/* issue callback to client */
-		if (gsl_ctxt.global_cb)
-			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_UP, NULL, 0,
-			gsl_ctxt.global_cb_client_data);
+		fire_up = gsl_spf_ss_state_fire_up_event(master_proc, spf_ss_mask);
+		if (fire_up && gsl_ctxt.global_cb)
+			gsl_ctxt.global_cb(GSL_GLOBAL_EVENT_AUDIO_SVC_UP,
+				NULL, 0, gsl_ctxt.global_cb_client_data);
 	}
 }
 
@@ -701,6 +706,36 @@ void gsl_get_version(uint32_t *major, uint32_t *minor)
 
 	*major = GSL_MAJOR_VERSION;
 	*minor = GSL_MINOR_VERSION;
+}
+
+static int32_t gsl_send_close_all(uint32_t master_proc_id)
+{
+	gpr_cmd_alloc_ext_t gpr_args = {0};
+	gpr_packet_t *send_pkt = NULL;
+	int32_t rc;
+
+	GSL_INFO("gsl_send_close_all: sending APM_CMD_CLOSE_ALL to proc %d", master_proc_id);
+
+	gpr_args.src_domain_id = GPR_IDS_DOMAIN_ID_APPS_V;
+	gpr_args.dst_domain_id = (uint8_t)master_proc_id;
+	gpr_args.src_port = GSL_MAIN_SRC_PORT;
+	gpr_args.dst_port = APM_MODULE_INSTANCE_ID;
+	gpr_args.opcode = APM_CMD_CLOSE_ALL;
+	gpr_args.token = 0;
+	gpr_args.client_data = 0;
+	gpr_args.payload_size = 0;
+	gpr_args.ret_packet = &send_pkt;
+
+	rc = __gpr_cmd_alloc_ext(&gpr_args);
+	if (rc) {
+		GSL_ERR("gsl_send_close_all: pkt alloc failed proc %d rc %d", master_proc_id, rc);
+		return rc;
+	}
+
+	GSL_INFO("gsl_send_close_all: pkt allocated, waiting for SPF rsp proc %d", master_proc_id);
+	rc = gsl_send_spf_cmd_wait_for_basic_rsp(&send_pkt, &gsl_ctxt.rsp_signal);
+	GSL_INFO("gsl_send_close_all: APM_CMD_CLOSE_ALL proc %d done rc %d", master_proc_id, rc);
+	return rc;
 }
 
 static int32_t gsl_do_spf_readiness_check(
@@ -879,6 +914,11 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	uint32_t num_procs = 0;
 	struct proc_domain_type *proc_domains = NULL;
 	bool_t is_shmem_supported = TRUE;
+	bool_t is_non_cold_boot;
+	uint32_t dsp_list[AR_SUB_SYS_ID_LAST + 1] = {0};
+	uint32_t num_dsp = 0;
+	uint32_t sys_id = AR_SUB_SYS_ID_FIRST;
+	uint32_t tmp_spf_ss_mask, spf_ss_map_mask;
 
 	ar_log_init();
 
@@ -992,7 +1032,7 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	gsl_mdf_utils_get_master_proc_ids(&num_master_procs,
 					  master_procs);
 	master_procs = gsl_mem_zalloc(
-				sizeof(uint32_t)*(num_master_procs));
+				sizeof(uint32_t)*(AR_SUB_SYS_ID_LAST + 1));
 
 	if (master_procs == NULL) {
 		rc = AR_ENOMEMORY;
@@ -1005,6 +1045,8 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 	gsl_mdf_utils_get_proc_domain_info(&proc_domains, &num_procs);
 	if (!proc_domains)
 		num_procs = 0;
+
+	is_non_cold_boot = ar_osal_is_non_cold_boot();
 
 	for (i = 0; i < num_master_procs; i++) {
 		/* perform Spf readiness check */
@@ -1033,6 +1075,16 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 			goto mdf_utils_deinit;
 		}
 
+		if (is_non_cold_boot) {
+			rc = gsl_send_close_all(master_procs[i]);
+			if (rc) {
+				GSL_ERR("APM_CMD_CLOSE_ALL failed proc %d rc %d",
+					master_procs[i], rc);
+				goto mdf_utils_deinit;
+			}
+			GSL_INFO("APM_CMD_CLOSE_ALL succeeded proc %d", master_procs[i]);
+		}
+
 		rc = gsl_spf_ss_state_init(master_procs[i], tmp_supported_ss_mask,
 					   gsl_main_ssr_callback);
 		if (rc) {
@@ -1045,7 +1097,17 @@ int32_t gsl_init(struct gsl_init_data *init_data)
 					GSL_SPF_SS_STATE_UP);
 	}
 
-	rc = gsl_msg_builder_init(num_master_procs, master_procs);
+	tmp_spf_ss_mask = supported_ss_mask;
+	spf_ss_map_mask = supported_ss_mask;
+	while (tmp_spf_ss_mask){
+		if (GSL_TEST_SPF_SS_BIT(spf_ss_map_mask, sys_id)) {
+			dsp_list[num_dsp++] = sys_id;
+		}
+		++sys_id;
+		tmp_spf_ss_mask >>= 1;
+	}
+	rc = gsl_msg_builder_init(num_dsp, dsp_list, num_master_procs, master_procs);
+
 	if (rc) {
 		GSL_ERR("msg builder init failed %d", rc);
 		goto spf_ss_state_deinit;
@@ -1752,6 +1814,54 @@ int32_t gsl_ioctl(gsl_handle_t graph_handle,
 			GSL_ERR("configure write params ioctl failed %d", rc);
 		break;
 
+	case GSL_CMD_CONFIGURE_DP_READ_PARAMS: {
+		struct gsl_cmd_configure_datapath_read_write_params *dp_rdcfg =
+			(struct gsl_cmd_configure_datapath_read_write_params *)cmd_payload;
+
+		if (cmd_payload_sz < sizeof(struct gsl_cmd_configure_datapath_read_write_params)) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp read params ioctl, inv payload size %d expected >=%zu",
+				cmd_payload_sz,
+				sizeof(struct gsl_cmd_configure_datapath_read_write_params));
+			break;
+		}
+		if ((dp_rdcfg->attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) !=
+			GSL_DATA_MODE_EXTERN_PUSH_PULL) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp read params: data_mode must be EXTERN_PUSH_PULL");
+			break;
+		}
+		rc = gsl_graph_config_data_path(graph, GSL_DATA_DIR_READ,
+			(struct gsl_cmd_configure_read_write_params *)dp_rdcfg);
+		if (rc)
+			GSL_ERR("configure dp read params ioctl failed %d", rc);
+		break;
+	}
+
+	case GSL_CMD_CONFIGURE_DP_WRITE_PARAMS: {
+		struct gsl_cmd_configure_datapath_read_write_params *dp_wrcfg =
+			(struct gsl_cmd_configure_datapath_read_write_params *)cmd_payload;
+
+		if (cmd_payload_sz < sizeof(struct gsl_cmd_configure_datapath_read_write_params)) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp write params ioctl, inv payload size %d expected >=%zu",
+				cmd_payload_sz,
+				sizeof(struct gsl_cmd_configure_datapath_read_write_params));
+			break;
+		}
+		if ((dp_wrcfg->attributes & GSL_ATTRIBUTES_DATA_MODE_MASK) !=
+			GSL_DATA_MODE_EXTERN_PUSH_PULL) {
+			rc = AR_EBADPARAM;
+			GSL_ERR("cfg dp write params: data_mode must be EXTERN_PUSH_PULL");
+			break;
+		}
+		rc = gsl_graph_config_data_path(graph, GSL_DATA_DIR_WRITE,
+			(struct gsl_cmd_configure_read_write_params *)dp_wrcfg);
+		if (rc)
+			GSL_ERR("configure dp write params ioctl failed %d", rc);
+		break;
+	}
+
 	case GSL_CMD_GET_READ_BUFF_INFO:
 		if (cmd_payload_sz < sizeof(struct gsl_cmd_get_shmem_buf_info)) {
 			rc = AR_EBADPARAM;
@@ -2380,3 +2490,4 @@ exit:
 	GSL_MUTEX_UNLOCK(gsl_ctxt.acdb_client_lock);
 	return rc;
 }
+
