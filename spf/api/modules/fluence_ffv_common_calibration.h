@@ -615,4 +615,34 @@ struct qcmn_global_effect_param_t
 /* Type definition for the above structure.*/
 typedef struct qcmn_global_effect_param_t qcmn_global_effect_param_t;
 
+#define PARAM_ID_FLUENCE_NN_UI_NS_V1 0x0800137F
+
+typedef struct fluence_nn_ui_ns_v1_param_t fluence_nn_ui_ns_v1_param_t;
+/** @h2xmlp_parameter    {"PARAM_ID_FLUENCE_NN_UI_NS_V1", PARAM_ID_FLUENCE_NN_UI_NS_V1}
+@h2xmlp_description  {UI parameters for NN Fluence Version 11.0\n}
+@h2xmlp_toolPolicy  {RTC}
+*/
+
+#include "spf_begin_pack.h"
+
+struct fluence_nn_ui_ns_v1_param_t
+{
+    int16_t ns_remix;  // set this to target noise floor directly, not the cfg param but the data param
+    /**< @h2xmle_description   {Q0.15 gain remix gain }
+    @h2xmle_default            {0x0800}
+    @h2xmle_range              {0x0000..0x7FFF}
+    @h2xmle_dataFormat         {Q15}
+    @h2xmle_group              {Post_Gain}
+    @h2xmle_policy             {Basic} */
+
+    int16_t reserved;
+    /**< @h2xmle_description   {Client must set this field to zero.}
+    @h2xmle_default            {0}
+    @h2xmle_range              {0x0..0x0}
+    @h2xmle_visibility         {hide}
+    @h2xmle_readOnly           {true} */
+}
+#include "spf_end_pack.h"
+;
+
 #endif
