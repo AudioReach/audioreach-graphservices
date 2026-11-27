@@ -4,7 +4,7 @@ EXTRA_DIST = $(pkgconfig_DATA)
 
 AM_CFLAGS = -Wall -Wno-unknown-pragmas -Wno-error=comment -Wno-error=discarded-qualifiers \
             -Wno-error=address-of-packed-member -Wno-error=unused-but-set-variable \
-           -Wno-error=incompatible-pointer-types
+            -Wno-error=incompatible-pointer-types
 
 AM_CFLAGS += -I$(srcdir)/inc
 AM_CFLAGS += -I$(srcdir)/api

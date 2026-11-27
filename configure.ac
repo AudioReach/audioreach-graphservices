@@ -25,31 +25,30 @@ AC_SUBST([LT_VERSION_NUMBER], LT_MAJOR:LT_MINOR:LT_PATCH)
 
 AC_ARG_WITH([qcom],
     AS_HELP_STRING([install qcom header files (default is no)]),
-        [with_qcom=$withval],
-	    [with_qcom=no])
-	    AM_CONDITIONAL([ARGS_VENDOR_QCOM], [test "x${with_qcom}" = "xyes"])
+    [with_qcom=$withval],
+    [with_qcom=no])
+AM_CONDITIONAL([ARGS_VENDOR_QCOM], [test "x${with_qcom}" = "xyes"])
 
 AC_ARG_WITH([syslog],
     AS_HELP_STRING([use syslog (default is no)]),
-        [with_syslog=$withval],
-	    [with_syslog=no])
-	    AM_CONDITIONAL([ARGS_USE_SYSLOG], [test "x${with_syslog}" = "xyes"])
+    [with_syslog=$withval],
+    [with_syslog=no])
+AM_CONDITIONAL([ARGS_USE_SYSLOG], [test "x${with_syslog}" = "xyes"])
 
 AC_ARG_WITH([kernelheader],
     AS_HELP_STRING([use kernelheader (default is no)]),
-        [with_kernelheader=$withval],
-            [with_kernelheader=no])
-            AM_CONDITIONAL([KERNEL_HEADER], [test "x${with_kernelheader}" = "xyes"])
-
-
-AC_ARG_WITH([glib],
-      AC_HELP_STRING([--with-glib],
-         [enable glib, Build against glib. Use this when building for HLOS systems which use glib]))
+    [with_kernelheader=$withval],
+    [with_kernelheader=no])
+AM_CONDITIONAL([KERNEL_HEADER], [test "x${with_kernelheader}" = "xyes"])
 
 AC_ARG_WITH(sanitized-headers,
-      AS_HELP_STRING([--with-sanitized-headers=DIR],
-         [Specify the location of the sanitized Linux headers]),
-         [CFLAGS="$CFLAGS -I$withval"])
+    AS_HELP_STRING([--with-sanitized-headers=DIR],
+    [Specify the location of the sanitized Linux headers]),
+    [CFLAGS="$CFLAGS -I$withval"])
+
+AC_ARG_WITH([glib],
+    AC_HELP_STRING([--with-glib],
+    [enable glib, Build against glib. Use this when building for HLOS systems which use glib]))
 
 if (test "x${with_glib}" = "xyes"); then
         PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.16, dummy=yes,
@@ -65,16 +64,20 @@ fi
 
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
+AC_CHECK_FUNCS([strlcpy])
+AM_CONDITIONAL(USE_G_STR_FUNC,
+    [test "x${with_glib}" = "xyes" && ! test "x$ac_cv_func_strlcpy" = "xyes"])
+
 AC_ARG_WITH([cutils],
     AS_HELP_STRING([Use cutils (default is yes)]),
-     [with_cutils=$withval],
-     [with_cutils=yes])
+    [with_cutils=$withval],
+    [with_cutils=yes])
 AM_CONDITIONAL([CUTILS_SUPPORTED], [test "x${with_cutils}" = "xyes"])
 
 AC_ARG_WITH([ats_transport_tcp_ip],
     AS_HELP_STRING([Use ats transport TCP/IP (default is yes)]),
-     [with_ats_transport_tcp_ip=$withval],
-     [with_ats_transport_tcp_ip=yes])
+    [with_ats_transport_tcp_ip=$withval],
+    [with_ats_transport_tcp_ip=yes])
 AM_CONDITIONAL([USES_ATS_TRANSPORT_TCPIP], [test "x${with_ats_transport_tcp_ip}" = "xyes"])
 
 AC_ARG_WITH([dummy_diag],
@@ -121,9 +124,6 @@ fi
 
 AM_CONDITIONAL([LIBION_SUPPORTED], [test "x${with_libion}" = "xyes"])
 
-AC_CHECK_FUNCS([strlcpy])
-AM_CONDITIONAL(USE_G_STR_FUNC, ! test "x$ac_cv_func_strlcpy" = "xyes")
-
 AC_ARG_WITH([are_on_apps],
     AS_HELP_STRING([--with-are-on-apps],[Enable ARE (SPF) on APPS support (default is no)]),
     [with_are_on_apps=$withval],
@@ -136,10 +136,43 @@ AC_ARG_WITH([msm_audio_ion_disable],
     [with_msm_audio_ion_disable=no])
 AM_CONDITIONAL([ION_DRIVER_NOT_SUPPORTED], [test "x${with_msm_audio_ion_disable}" = "xyes"])
 
+AC_ARG_WITH([audio-dynamic-pd],
+    AS_HELP_STRING([Enable Audio Dynamic PD support (default is disabled)]),
+    [with_audio_dynamic_pd=$withval],
+    [with_audio_dynamic_pd=disable])
+AM_CONDITIONAL([TARGET_AUDIO_DYNAMIC_PD_ENABLED],
+    [test "x${with_audio_dynamic_pd}" = "xenable"])
+
+AC_ARG_WITH([pd-notifier],
+    AS_HELP_STRING([Enable PD notifier support (default is no)]),
+    [with_pd_notifier=$withval],
+    [with_pd_notifier=no])
+AM_CONDITIONAL([USE_PD_NOTIFIER], [test "x${with_pd_notifier}" = "xyes"])
+
+if test "x${with_pd_notifier}" = "xyes"; then
+    PKG_CHECK_MODULES([QMIF], [qmi-framework])
+    AC_SUBST([QMIF_CFLAGS])
+    AC_SUBST([QMIF_LIBS])
+
+    PKG_CHECK_MODULES([PDMAPPER], [pdmapper])
+    AC_SUBST([PDMAPPER_CFLAGS])
+    AC_SUBST([PDMAPPER_LIBS])
+
+    PKG_CHECK_MODULES([PDNOTIFIER], [pdnotifier])
+    AC_SUBST([PDNOTIFIER_CFLAGS])
+    AC_SUBST([PDNOTIFIER_LIBS])
+fi
+
+AC_ARG_WITH([spf-restart],
+    AS_HELP_STRING([Enable SPF restart support (default is no)]),
+    [with_spf_restart=$withval],
+    [with_spf_restart=no])
+AM_CONDITIONAL([SPF_RESTART_DISABLED], [test "x${with_spf_restart}" = "xno"])
+
 AC_ARG_WITH([ats_data_logging],
     AS_HELP_STRING([Use ATS data logging using Data Logging Service(DLS) (default is yes)]),
-     [with_ats_data_logging=$withval],
-     [with_ats_data_logging=yes])
+    [with_ats_data_logging=$withval],
+    [with_ats_data_logging=yes])
 AM_CONDITIONAL([USES_ATS_DATA_LOGGING], [test "x${with_ats_data_logging}" = "xyes"])
 
 AC_CONFIG_FILES(
@@ -159,6 +192,5 @@ acdb/ats/ats.pc
 gpr/gpr.pc
 gsl/gsl.pc
 )
-
 
 AC_OUTPUT

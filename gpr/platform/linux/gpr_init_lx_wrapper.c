@@ -12,9 +12,7 @@
 #include "gpr_lx.h"
 #include <unistd.h>
 
-#ifdef GPR_USE_CUTILS
-#include <log/log.h>
-#else
+#ifdef GPR_USE_SYSLOG
 #include <syslog.h>
 #ifndef ALOGD
 #define ALOGD(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
@@ -25,6 +23,8 @@
 #ifndef ALOGE
 #define ALOGE(fmt, arg...) syslog (LOG_ERR, fmt, ##arg)
 #endif
+#else
+#include <log/log.h>
 #endif
 
 #define GPR_NUM_PACKETS_TYPE 3
