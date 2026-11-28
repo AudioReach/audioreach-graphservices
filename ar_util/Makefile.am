@@ -23,4 +23,5 @@ lib_LTLIBRARIES = libar-util.la
 libar_util_la_CC = @CC@
 libar_util_la_SOURCES = $(util_c_sources)
 libar_util_la_CFLAGS = $(AM_CFLAGS)
+libar_util_la_LIBADD = $(top_builddir)/ar_osal/libar-osal.la
 libar_util_la_LDFLAGS = -shared -version-number @LT_VERSION_NUMBER@
