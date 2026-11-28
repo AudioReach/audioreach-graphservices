@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: ar_util
 Description: ar_util library
 Version: @LT_VERSION@
-Libs: -L${libdir} -lar-util
+Libs: -L${libdir} -laudioreach-util
 Cflags: -I${includedir}
